@@ -79,7 +79,11 @@ public class Merchant : MonoBehaviour
 
     public void Open()
     {
-        if (CanTrade && !_open) { _open = true; UIModal.Push(); }
+        if (!CanTrade || _open) return;
+        // A corrupted player may be refused or attacked instead of traded with.
+        if (_npc != null && _npc.CorruptionBlocksInteraction()) return;
+        _open = true;
+        UIModal.Push();
     }
 
     void Close()
@@ -233,8 +237,10 @@ public class Merchant : MonoBehaviour
         {
             var row = new Rect(0, iy, content.width, rowH - 2f);
             GUI.Box(row, "");
+            var nameStyle = new GUIStyle(GUI.skin.label);
+            if (slot.item != null) nameStyle.normal.textColor = GameUI.RarityColor(slot.item.rarity);
             GUI.Label(new Rect(6f, iy + 6f, content.width - 110f, 22f),
-                $"{slot.ItemName}  ×{slot.count}");
+                $"{slot.ItemName}  ×{slot.count}", nameStyle);
             GUI.Label(new Rect(content.width - 104f, iy + 6f, 48f, 22f),
                 $"{BuyPrice(slot.item)}g", GoldRight());
             if (GUI.Button(new Rect(content.width - 52f, iy + 4f, 48f, 24f), "Buy"))
@@ -271,8 +277,10 @@ public class Merchant : MonoBehaviour
                 if (!IsSellable(slot.item)) continue;
                 var row = new Rect(0, iy, content.width, rowH - 2f);
                 GUI.Box(row, "");
+                var nameStyle = new GUIStyle(GUI.skin.label);
+                if (slot.item != null) nameStyle.normal.textColor = GameUI.RarityColor(slot.item.rarity);
                 GUI.Label(new Rect(6f, iy + 6f, content.width - 110f, 22f),
-                    $"{slot.ItemName}  ×{slot.count}");
+                    $"{slot.ItemName}  ×{slot.count}", nameStyle);
                 GUI.Label(new Rect(content.width - 104f, iy + 6f, 48f, 22f),
                     $"{SellPrice(slot.item)}g", GoldRight());
                 if (GUI.Button(new Rect(content.width - 52f, iy + 4f, 48f, 24f), "Sell"))

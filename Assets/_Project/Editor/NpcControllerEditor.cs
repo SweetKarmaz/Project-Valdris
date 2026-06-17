@@ -18,6 +18,9 @@ public class NpcControllerEditor : Editor
         Field("saveId");
 
         Section("Inventory & Loot");
+        Field("lootRarity");
+        Field("goldMin");
+        Field("goldMax");
         Field("items");
 
         Section("Story (per-instance)");

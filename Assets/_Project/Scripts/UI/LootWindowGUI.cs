@@ -39,8 +39,10 @@ public static class LootWindowGUI
         foreach (var slot in slots)
         {
             GUI.Box(new Rect(0, iy, content.width, rowH - 2f), "");
+            var nameStyle = new GUIStyle(GUI.skin.label);
+            if (slot.item != null) nameStyle.normal.textColor = GameUI.RarityColor(slot.item.rarity);
             GUI.Label(new Rect(8f, iy + 6f, content.width - 80f, 22f),
-                $"{slot.ItemName}  ×{slot.count}");
+                $"{slot.ItemName}  ×{slot.count}", nameStyle);
             if (GUI.Button(new Rect(content.width - 72f, iy + 4f, 66f, 24f), "Take"))
                 toTake = slot.item;
             iy += rowH;

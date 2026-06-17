@@ -88,7 +88,13 @@ public enum StatType
     // Crit (flat = percentage points; percent mode also works)
     PhysicalCritChance,
     SpellCritChance,
-    CritDamage // modifies the crit multiplier, in percent points (e.g. +25 = +0.25x)
+    CritDamage, // modifies the crit multiplier, in percent points (e.g. +25 = +0.25x)
+    // Elemental damage resistances (flat mode = percentage points of damage reduced).
+    FireResist,
+    IceResist,
+    LightningResist,
+    HolyResist,
+    CorruptionResist
 }
 
 // Crowd-control categories. Characters can be immune or resilient per type.

@@ -740,6 +740,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   corruptionLevel: 0
+  corruptionMax: 10000
+  corruptionPerDamageDealt: 0.5
 --- !u!1 &1600
 GameObject:
   m_ObjectHideFlags: 0
@@ -960,40 +962,7 @@ MonoBehaviour:
   shieldGripPosition: {x: -0.05, y: 0, z: 0}
   oneHandedIdlePose: {fileID: -203655887218126122, guid: 1ca8e6d01d0609b4babdf568edbad757, type: 3}
   twoHandedIdlePose: {fileID: -203655887218126122, guid: 5b0bf1051d2a04d46babf03c182208ac, type: 3}
-  startingInventory:
-  - lootItem: {fileID: 8847031495020349558, guid: 33c93cb3a7dfb3849be049ea37f6b5f3, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 287226810252972750, guid: 53a2310c91e87d34f999bf91f5c93f64, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 7085065071859322988, guid: 557fae27d9272564481ecd65d1d853bd, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 318253142479540213, guid: 2536d4430d740ea41a4239723ad98b89, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 8843252846414176258, guid: 1bd55dece3d26ce46ab845d07de14e60, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 5887053755630695999, guid: f96b11e1fb4fd2b4ebdf64bd754112c3, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 5065228341773176764, guid: 34943da21f2cb1a46b11e6b8fee05634, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 8379090517879527112, guid: 29aaab08b185647429c538aa38e78a20, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 8130068777555775796, guid: 23e92e4e08c170443b4ef2c10af1d9d8, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 7154179102093269913, guid: 04ef27975b37d7f4abacca0bd4c461a9, type: 3}
-    quantity: 1
-    dropChance: 0
-  - lootItem: {fileID: 1694367669298205263, guid: 713e9d9c56597f54292c7f6d405b78e8, type: 3}
-    quantity: 1
-    dropChance: 0
+  startingInventory: []
   startingGold: 500
   spawnPlayer: 1
 --- !u!4 &1451234116

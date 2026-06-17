@@ -33,6 +33,12 @@ public class SavedNPCState
     public int                     remainingGold;
     public List<InventorySlotSave> inventory = new();
 
+    // Auto-generated starting gear (rolled once on first spawn, then persisted so
+    // the same weapon is restored on revisit rather than re-randomized).
+    public bool     gearGenerated;
+    public ItemRoll generatedWeapon;   // null/empty basePrefabName = none
+    public int      generatedArrows;   // arrows granted alongside a generated bow
+
     // Merchant (only when the NPC has a Merchant component)
     public bool                    isMerchant;
     public int                     merchantGold;

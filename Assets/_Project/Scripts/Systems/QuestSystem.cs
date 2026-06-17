@@ -152,6 +152,10 @@ public class QuestSystem : MonoBehaviour
         // Deliver rewards
         if (quest.goldReward > 0)
             InventorySystem.Instance?.AddGold(quest.goldReward);
+        if (quest.corruptionReward > 0f)
+            CorruptionTracker.Instance?.AddCorruption(quest.corruptionReward);
+        else if (quest.corruptionReward < 0f)
+            CorruptionTracker.Instance?.ReduceCorruption(-quest.corruptionReward);
         if (quest.xpReward > 0)
             XPSystem.Instance?.AddXP(quest.xpReward);
         if (quest.itemRewards != null)

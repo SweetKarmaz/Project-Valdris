@@ -25,8 +25,16 @@ public class NpcController : MonoBehaviour, IDamageable
     public string saveId;
 
     [Header("Inventory & Loot")]
+    [Tooltip("Loot rarity of this NPC. Drives the randomized corpse-loot roll on death " +
+             "(higher rarity = better/more items and gold). See LootDropTable.")]
+    public ItemRarity lootRarity = ItemRarity.Common;
+    [Tooltip("Corpse gold range for this NPC, multiplied by the rarity gold factor. " +
+             "Leave both at 0 to use the archetype definition's range instead.")]
+    public int goldMin;
+    public int goldMax;
     [Tooltip("This NPC's carried items — set per placed character. Feeds combat (thrown-weapon " +
-             "stock) and corpse loot on death. Each entry: a LootItem prefab, quantity, dropChance.")]
+             "stock) and corpse loot on death. Each entry: a LootItem prefab, quantity, dropChance. " +
+             "Added ON TOP of the randomized roll.")]
     public List<NpcItem> items = new();
 
     [Header("Story (per-instance)")]
@@ -38,6 +46,16 @@ public class NpcController : MonoBehaviour, IDamageable
     [Header("Dialogue (per-instance)")]
     public bool   canTalk;
     public string greetingLine;
+
+    [Header("Corruption Reaction (per-instance)")]
+    [Tooltip("If true, this NPC reacts to the player's Corruption meter (% of the bar).")]
+    public bool reactsToCorruption;
+    [Range(0f, 100f)] public float corruptionNoticePercent  = 30f;
+    [Range(0f, 100f)] public float corruptionRefusePercent  = 60f;
+    [Range(0f, 100f)] public float corruptionHostilePercent = 90f;
+    [TextArea] public string corruptionNoticeLine  = "...you carry a darkness about you.";
+    [TextArea] public string corruptionRefuseLine  = "I'll not deal with the likes of you.";
+    [TextArea] public string corruptionHostileLine = "Foul thing! Be gone!";
 
     [Header("Attention (look at player during talk/trade)")]
     [Tooltip("Half-angle of the frontal cone (deg). Player inside it → head-look only; outside → turn body.")]
@@ -151,6 +169,12 @@ public class NpcController : MonoBehaviour, IDamageable
     // any Projectile-type LootItem. Consumed one-per-throw during combat.
     readonly Dictionary<LootItem, int> _thrownStock = new();
 
+    // Auto-generated starting gear (see EnsureInitialGear), persisted in SavedNPCState.
+    bool     _gearGenerated;
+    ItemRoll _generatedWeaponRoll;
+    int      _generatedArrows;
+    const int ArrowsPerBow = 25;
+
     // ── Corpse loot ───────────────────────────────────────────────────────────
     // Rolled once on death from this NPC's instance items (dropChance) + the
     // definition's goldMin/Max.
@@ -161,7 +185,9 @@ public class NpcController : MonoBehaviour, IDamageable
     bool    _lootOpen;
     Vector2 _lootScroll;
 
-    public bool IsDead => _charAnim != null && _charAnim.IsDead;
+    public bool  IsDead       => _charAnim != null && _charAnim.IsDead;
+    public bool  IsInCombat   => _inCombat;
+    public float CurrentHealth => _health;
 
     // A corpse the player can still loot: dead, flagged lootable, and not empty.
     public bool CanLoot =>
@@ -235,6 +261,9 @@ public class NpcController : MonoBehaviour, IDamageable
         // Self-register so SceneStateManager can save/restore this NPC's state.
         SceneStateManager.Instance?.RegisterNPC(this);
 
+        // First-spawn auto-gear (RegisterNPC above already restored saved gear if any).
+        EnsureInitialGear();
+
         // Always-aggressive NPCs (guards, bandits) draw their weapon up front.
         // Other triggers (being attacked, aggro, witnessed kills) call EnterCombat
         // when their systems are in place; being attacked already does (TakeDamage).
@@ -260,6 +289,11 @@ public class NpcController : MonoBehaviour, IDamageable
             _agent.isStopped = true;
             return;
         }
+
+        CheckCorruptionHostility();   // corruption-hostile NPCs attack on sight
+
+        // Active combat overrides wandering: chase, face, and attack the target.
+        if (_inCombat) { CombatUpdate(); return; }
 
         // Pause wandering while attending to the player (the look-at runs in LateUpdate).
         if (Attending)
@@ -374,6 +408,63 @@ public class NpcController : MonoBehaviour, IDamageable
         }
     }
 
+    // ── Corruption reaction ───────────────────────────────────────────────────
+
+    bool _corruptionNoticeShown;
+
+    float AggroRange => definition != null ? definition.aggroRange : 10f;
+
+    public CorruptionStance GetCorruptionStance()
+    {
+        if (!reactsToCorruption || CorruptionTracker.Instance == null) return CorruptionStance.None;
+        float p = CorruptionTracker.Instance.Percent;
+        if (p >= corruptionHostilePercent) return CorruptionStance.Hostile;
+        if (p >= corruptionRefusePercent)  return CorruptionStance.Refuse;
+        if (p >= corruptionNoticePercent)  return CorruptionStance.Notice;
+        return CorruptionStance.None;
+    }
+
+    // True when corruption should block normal talk/trade. Notice only remarks
+    // (once) and does NOT block; Refuse blocks; Hostile blocks and starts combat.
+    public bool CorruptionBlocksInteraction()
+    {
+        switch (GetCorruptionStance())
+        {
+            case CorruptionStance.Hostile:
+                Say(corruptionHostileLine);
+                EnterCombat();
+                return true;
+            case CorruptionStance.Refuse:
+                Say(corruptionRefuseLine);
+                return true;
+            case CorruptionStance.Notice:
+                if (!_corruptionNoticeShown) { Say(corruptionNoticeLine); _corruptionNoticeShown = true; }
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    void Say(string line)
+    {
+        if (!string.IsNullOrEmpty(line)) ScreenNotifier.Show($"{DisplayName}: {line}");
+    }
+
+    // Corruption-hostile NPCs attack the player on sight (within aggro range).
+    void CheckCorruptionHostility()
+    {
+        if (_inCombat || !reactsToCorruption || IsDead) return;
+        if (GetCorruptionStance() != CorruptionStance.Hostile) return;
+
+        var player = PlayerManager.Instance?.Player;
+        if (player == null) return;
+        if ((player.transform.position - transform.position).sqrMagnitude <= AggroRange * AggroRange)
+        {
+            Say(corruptionHostileLine);
+            EnterCombat();
+        }
+    }
+
     // ── Combat entry / weapon selection ───────────────────────────────────────
 
     const string RightHandBone = "Hand_R";
@@ -409,8 +500,157 @@ public class NpcController : MonoBehaviour, IDamageable
     {
         _inCombat       = false;
         _equippedWeapon = null;
+        _combatTarget   = null;
+        _swinging       = false;
         if (_weaponMount != null) { Destroy(_weaponMount); _weaponMount = null; }
         if (_shieldMount != null) { Destroy(_shieldMount); _shieldMount = null; }
+        _charAnim?.SetStance(WeaponStance.NoWeapon);
+        if (_agent != null && _agent.enabled) _agent.speed = WalkSpeed;   // restore wander pace
+    }
+
+    // ── Combat AI (chase / face / attack) ─────────────────────────────────────
+
+    Transform _combatTarget;
+    float     _attackCooldownUntil;
+    bool      _swinging;
+    bool      _swingHit;
+    float     _swingStart, _swingEnd;
+
+    void CombatUpdate()
+    {
+        if (IsDead) { ExitCombat(); return; }
+
+        if (_combatTarget == null)
+        {
+            var p = PlayerManager.Instance?.Player;
+            _combatTarget = p != null ? p.transform : null;
+        }
+        if (_combatTarget == null) { ExitCombat(); return; }
+
+        // Drop combat if the player died or fled well beyond aggro range.
+        var pstats = _combatTarget.GetComponent<PlayerStats>();
+        if (pstats != null && pstats.CurrentHealth <= 0f) { ExitCombat(); return; }
+
+        _charAnim.SetStance(CharacterAnimator.StanceFor(_equippedWeapon));
+
+        Vector3 to = _combatTarget.position - transform.position; to.y = 0f;
+        float dist = to.magnitude;
+        if (dist > AggroRange * 2.5f) { ExitCombat(); return; }
+
+        // Face the target.
+        if (to.sqrMagnitude > 0.0001f)
+        {
+            Quaternion look = Quaternion.LookRotation(to.normalized, Vector3.up);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, bodyTurnSpeed * Time.deltaTime);
+        }
+
+        bool movePrevented = _buffs != null && _buffs.IsMovementPrevented;
+        float range = AttackRange();
+
+        if (dist > range && !movePrevented)
+        {
+            _agent.isStopped = false;
+            _agent.speed     = RunSpeed;
+            _agent.SetDestination(_combatTarget.position);
+            _charAnim.SetSpeed(Mathf.Clamp01(_agent.velocity.magnitude / RunSpeed));
+        }
+        else
+        {
+            if (_agent.isOnNavMesh) _agent.isStopped = true;
+            _charAnim.SetSpeed(0f);
+            if (!movePrevented && Time.time >= _attackCooldownUntil && FacingTarget(to))
+                BeginAttack();
+        }
+
+        UpdateMeleeSwing();
+    }
+
+    bool IsArcher => CharacterAnimator.StanceFor(_equippedWeapon) == WeaponStance.Archer;
+
+    float AttackRange() =>
+        IsArcher ? Mathf.Min(AggroRange, 14f)
+                 : (_equippedWeapon != null ? _equippedWeapon.weaponRange : 1.5f) + 1.4f;
+
+    float AttackInterval() =>
+        IsArcher ? Mathf.Max(0.6f, _equippedWeapon != null ? _equippedWeapon.reloadTime : 1.5f)
+                 : Mathf.Max(0.7f, 1.5f - (_equippedWeapon != null ? _equippedWeapon.attackSpeedModifier : 0f));
+
+    bool FacingTarget(Vector3 to) =>
+        to.sqrMagnitude < 0.0001f || Vector3.Angle(transform.forward, to) < 30f;
+
+    void BeginAttack()
+    {
+        _attackCooldownUntil = Time.time + AttackInterval();
+        _charAnim.TriggerAttack();
+
+        if (IsArcher) FireArrow();
+        else { _swinging = true; _swingHit = false; _swingStart = Time.time + 0.15f; _swingEnd = Time.time + 0.5f; }
+    }
+
+    // Melee: deal damage only if the weapon's volume actually overlaps the target
+    // during the active window (dodge the blade → no hit).
+    void UpdateMeleeSwing()
+    {
+        if (!_swinging) return;
+        if (Time.time > _swingEnd) { _swinging = false; return; }
+        if (_swingHit || Time.time < _swingStart || _combatTarget == null) return;
+
+        var col = _combatTarget.GetComponentInChildren<Collider>();
+        if (col == null) return;
+
+        bool overlap = WeaponOverlapsTarget(col);
+        // Fallback for weapons without a renderer: a reach check in front.
+        if (!overlap && _weaponMount == null)
+        {
+            Vector3 to = _combatTarget.position - transform.position; to.y = 0f;
+            overlap = to.magnitude <= AttackRange() && FacingTarget(to);
+        }
+        if (!overlap) return;
+
+        _swingHit = true;
+        float dmg = _equippedWeapon != null && _equippedWeapon.weaponDamage > 0f
+            ? _equippedWeapon.weaponDamage : 5f;
+        Combat.ApplyHit(_combatTarget.gameObject, gameObject, dmg, _equippedWeapon?.onHitEffects);
+    }
+
+    bool WeaponOverlapsTarget(Collider targetCol)
+    {
+        if (_weaponMount == null || targetCol == null) return false;
+        Bounds b = default; bool has = false;
+        foreach (var r in _weaponMount.GetComponentsInChildren<Renderer>())
+        {
+            if (!has) { b = r.bounds; has = true; } else b.Encapsulate(r.bounds);
+        }
+        if (!has) return false;
+        b.Expand(0.25f);
+        return b.Intersects(targetCol.bounds);
+    }
+
+    void FireArrow()
+    {
+        LootItem arrow = FindArrowStock();
+        if (arrow == null) { RefreshWeapon(); return; }   // out of ammo → fall back to melee
+
+        Vector3 spawn = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
+        Vector3 aim   = (_combatTarget.position + Vector3.up) - spawn;
+        if (aim.sqrMagnitude < 0.0001f) aim = transform.forward;
+        aim.Normalize();
+
+        var inst = Instantiate(arrow.gameObject, spawn, Quaternion.LookRotation(aim));
+        inst.SetActive(true);
+        var proj = inst.GetComponent<ProjectileBehaviour>() ?? inst.AddComponent<ProjectileBehaviour>();
+        proj.Launch(aim, 0f, arrow, _equippedWeapon, gameObject);
+
+        if (_thrownStock.ContainsKey(arrow))
+            _thrownStock[arrow] = Mathf.Max(0, _thrownStock[arrow] - 1);
+    }
+
+    LootItem FindArrowStock()
+    {
+        foreach (var kv in _thrownStock)
+            if (kv.Value > 0 && kv.Key != null && kv.Key.projectileType == ProjectileType.Arrow)
+                return kv.Key;
+        return null;
     }
 
     void EquipBestWeapon()
@@ -435,6 +675,8 @@ public class NpcController : MonoBehaviour, IDamageable
                 _shieldMount = HeldItemVisual.Attach(transform, shield, EquipSlot.OffHand,
                                                      RightHandBone, LeftHandBone);
         }
+
+        _charAnim?.SetStance(CharacterAnimator.StanceFor(_equippedWeapon));
     }
 
     // Walks the attack-priority order and returns the strongest weapon the NPC
@@ -570,6 +812,49 @@ public class NpcController : MonoBehaviour, IDamageable
 
     void OnArrived() => _idleUntil = Time.time + Random.Range(IdleSecondsMin, IdleSecondsMax);
 
+    // ── Initial auto-gear ─────────────────────────────────────────────────────
+    // On first spawn only, generate a weapon matching the NPC's primary attack
+    // type at its loot rarity (and arrows if it's a bow). Persisted so it doesn't
+    // re-randomize on revisit. Added to `items` so it feeds combat selection and
+    // drops as corpse loot.
+
+    void EnsureInitialGear()
+    {
+        if (_gearGenerated) return;
+        _gearGenerated = true;
+
+        AttackType atk = AttackPriority != null && AttackPriority.Length > 0
+            ? AttackPriority[0] : AttackType.Melee;
+        if (atk == AttackType.Spells) return;   // casters need no held weapon
+
+        var weapon = LootGenerator.GenerateWeaponForAttack(atk, lootRarity);
+        if (weapon == null) return;
+
+        _generatedWeaponRoll = weapon.runtimeRoll;
+        int arrows = weapon.weaponCategory == WeaponCategory.Ranged
+                     && weapon.requiredProjectile == ProjectileType.Arrow ? ArrowsPerBow : 0;
+        AttachGeneratedGear(weapon, arrows);
+    }
+
+    // Adds a generated weapon (and any arrows) to the NPC's live item list and
+    // ammo stock. Shared by first-spawn generation and save restore.
+    void AttachGeneratedGear(LootItem weapon, int arrows)
+    {
+        if (weapon != null)
+            items.Add(new NpcItem { lootItem = weapon, quantity = 1, dropChance = 1f });
+
+        _generatedArrows = arrows;
+        if (arrows > 0)
+        {
+            var arrow = SaveSystem.Instance?.database?.lootRegistry?.FindByName("Arrow");
+            if (arrow != null)
+            {
+                items.Add(new NpcItem { lootItem = arrow, quantity = arrows, dropChance = 1f });
+                _thrownStock[arrow] = arrows;   // lets the bow pass the ammo check
+            }
+        }
+    }
+
     // ── Corpse loot ─────────────────────────────────────────────────────────
 
     void RollCorpseLoot()
@@ -580,14 +865,24 @@ public class NpcController : MonoBehaviour, IDamageable
         // the item contents come from this NPC's per-instance list.
         if (definition != null && !definition.isLootable) return;
 
+        // Randomized corpse loot based on this NPC's loot rarity.
+        foreach (var r in LootDropTable.Roll(lootRarity))
+        {
+            var item = LootGenerator.GenerateItem(r);
+            if (item != null) _corpseLoot.Add(item, 1);
+        }
+
+        // Hand-authored carried items, added on top.
         if (items != null)
             foreach (var npcItem in items)
                 if (npcItem.lootItem != null && Random.value <= npcItem.dropChance)
                     _corpseLoot.Add(npcItem.lootItem, Mathf.Max(1, npcItem.quantity));
 
-        int goldMin = definition != null ? definition.goldMin : 0;
-        int goldMax = definition != null ? definition.goldMax : 0;
-        _corpseGold = goldMax > goldMin ? Random.Range(goldMin, goldMax + 1) : goldMin;
+        // Per-instance gold range overrides the archetype definition when set.
+        int gMin = goldMin, gMax = goldMax;
+        if (gMin == 0 && gMax == 0 && definition != null) { gMin = definition.goldMin; gMax = definition.goldMax; }
+        int baseGold = gMax > gMin ? Random.Range(gMin, gMax + 1) : gMin;
+        _corpseGold = Mathf.RoundToInt(baseGold * LootDropTable.GoldMultiplier(lootRarity));
     }
 
     void OnGUI()
@@ -624,6 +919,9 @@ public class NpcController : MonoBehaviour, IDamageable
             hasBeenLooted = _looted,
             remainingGold = _corpseGold,
             inventory     = _corpseLoot.Capture(),
+            gearGenerated   = _gearGenerated,
+            generatedWeapon = _generatedWeaponRoll,
+            generatedArrows = _generatedArrows,
         };
 
         if (_charAnim.IsDead && transform.childCount > 0)
@@ -662,6 +960,17 @@ public class NpcController : MonoBehaviour, IDamageable
         _looted     = state.hasBeenLooted;
         _corpseGold = state.remainingGold;
         _corpseLoot.Restore(state.inventory, SaveSystem.Instance?.database?.lootRegistry);
+
+        // Restore auto-gear so a living NPC keeps the same generated weapon/arrows.
+        _gearGenerated = state.gearGenerated;
+        if (_gearGenerated)
+        {
+            _generatedWeaponRoll = state.generatedWeapon;
+            LootItem weapon = _generatedWeaponRoll != null
+                && !string.IsNullOrEmpty(_generatedWeaponRoll.basePrefabName)
+                    ? LootItemFactory.Build(_generatedWeaponRoll) : null;
+            if (weapon != null) AttachGeneratedGear(weapon, state.generatedArrows);
+        }
 
         // Restore merchant stock + gold.
         if (state.isMerchant)

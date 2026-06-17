@@ -17,9 +17,9 @@ using UnityEngine;
 public class PlayerRanged : MonoBehaviour
 {
     [Header("Equipped Weapon")]
-    [Tooltip("The ranged LootItem currently held. " +
-             "Assign manually until CharacterEquipment supports LootItem.")]
-    public LootItem equippedWeapon;
+    [Tooltip("Leave unassigned — weapon is read from InventorySystem automatically. " +
+             "Assign only to force a specific weapon for testing.")]
+    public LootItem equippedWeaponOverride;
 
     [Header("Spawn")]
     [Tooltip("Empty child Transform on the camera from which projectiles emerge. " +
@@ -38,19 +38,24 @@ public class PlayerRanged : MonoBehaviour
     PlayerStats _stats;
     float       _cooldown;   // seconds remaining until next shot is allowed
 
+    // Auto-reads from InventorySystem; falls back to the inspector override.
+    LootItem equippedWeapon =>
+        equippedWeaponOverride
+        ?? InventorySystem.Instance?.GetEquippedLoot(EquipSlot.MainHand);
+
     // 0..1 reload progress for HUD display (1 = ready to fire).
     public float ReloadProgress =>
         equippedWeapon != null && equippedWeapon.reloadTime > 0f
             ? Mathf.Clamp01(1f - _cooldown / equippedWeapon.reloadTime)
             : 1f;
 
-    public bool ReadyToFire   => _cooldown <= 0f;
-    public bool HasWeapon     => equippedWeapon != null && equippedWeapon.IsWeapon
-                                 && equippedWeapon.weaponCategory == WeaponCategory.Ranged;
-    public bool HasAmmo       => HasWeapon
-                                 && InventorySystem.Instance != null
-                                 && InventorySystem.Instance.HasProjectile(
-                                        equippedWeapon.requiredProjectile);
+    public bool ReadyToFire => _cooldown <= 0f;
+    public bool HasWeapon   => equippedWeapon != null && equippedWeapon.IsWeapon
+                               && equippedWeapon.weaponCategory == WeaponCategory.Ranged;
+    public bool HasAmmo     => HasWeapon
+                               && InventorySystem.Instance != null
+                               && InventorySystem.Instance.HasProjectile(
+                                      equippedWeapon.requiredProjectile);
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -111,6 +116,9 @@ public class PlayerRanged : MonoBehaviour
             direction.Normalize();
         }
 
+        // Play the bow draw → release animation on the viewmodel.
+        PlayerViewmodel.Instance?.TriggerAttack();
+
         // Spawn and launch.
         Transform spawn    = GetSpawnPoint();
         var instance       = Instantiate(ammo.gameObject, spawn.position,
@@ -121,8 +129,9 @@ public class PlayerRanged : MonoBehaviour
         var proj = instance.GetComponent<ProjectileBehaviour>()
                    ?? instance.AddComponent<ProjectileBehaviour>();
 
-        float attackerDamage = _stats != null ? _stats.AttackDamage : 0f;
-        proj.Launch(direction, attackerDamage, ammo);
+        // Damage is the arrow's own + the bow's (weaponDamage + elemental riders),
+        // resolved on hit. Player melee AttackDamage does not apply to arrows.
+        proj.Launch(direction, 0f, ammo, equippedWeapon, gameObject);
 
         // Consume one round of ammo.
         inv.ConsumeProjectile(needed);

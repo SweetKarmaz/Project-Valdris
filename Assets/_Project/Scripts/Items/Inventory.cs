@@ -14,6 +14,9 @@ using UnityEngine;
 //
 // Add() returns the count that did NOT fit, so callers can implement
 // "leave it in the container" or "spawn an overflow bag" behaviour.
+// How the player's inventory can be sorted from the UI.
+public enum InventorySortMode { Name, Rarity, Value, Type }
+
 [Serializable]
 public class Inventory
 {
@@ -125,6 +128,34 @@ public class Inventory
         OnChanged?.Invoke();
     }
 
+    // Reorders the slots in place by the chosen key. Rarity/Value sort high→low;
+    // Name/Type sort ascending (with name as the tiebreaker).
+    public void Sort(InventorySortMode mode)
+    {
+        int ByName(InventorySlot a, InventorySlot b) =>
+            string.Compare(a.ItemName, b.ItemName, System.StringComparison.OrdinalIgnoreCase);
+
+        _slots.Sort((a, b) =>
+        {
+            if (a.item == null || b.item == null) return 0;
+            switch (mode)
+            {
+                case InventorySortMode.Rarity:
+                    int rc = b.item.rarity.CompareTo(a.item.rarity);
+                    return rc != 0 ? rc : ByName(a, b);
+                case InventorySortMode.Value:
+                    int vc = b.item.goldValue.CompareTo(a.item.goldValue);
+                    return vc != 0 ? vc : ByName(a, b);
+                case InventorySortMode.Type:
+                    int tc = a.item.itemType.CompareTo(b.item.itemType);
+                    return tc != 0 ? tc : ByName(a, b);
+                default: // Name
+                    return ByName(a, b);
+            }
+        });
+        OnChanged?.Invoke();
+    }
+
     // Raised whenever the contents change (add/remove/clear/restore).
     public event Action OnChanged;
 
@@ -134,20 +165,29 @@ public class Inventory
     {
         var saves = new List<InventorySlotSave>(_slots.Count);
         foreach (var s in _slots)
-            if (s.item != null)
+        {
+            if (s.item == null) continue;
+            if (s.item.IsGenerated)
+                saves.Add(new InventorySlotSave { generated = true, roll = s.item.runtimeRoll, count = s.count });
+            else
                 saves.Add(new InventorySlotSave { itemName = s.item.ItemName, count = s.count });
+        }
         return saves;
     }
 
     public void Restore(List<InventorySlotSave> saved, LootRegistry registry)
     {
         _slots.Clear();
-        if (saved != null && registry != null)
+        if (saved != null)
             foreach (var entry in saved)
             {
-                var item = registry.FindByName(entry.itemName);
+                // Generated items are rebuilt from their roll; plain items resolve by name.
+                LootItem item = entry.generated
+                    ? LootItemFactory.Build(entry.roll)
+                    : registry != null ? registry.FindByName(entry.itemName) : null;
                 if (item != null) _slots.Add(new InventorySlot(item, entry.count));
-                else Debug.LogWarning($"[Inventory] Saved item not found in LootRegistry: {entry.itemName}");
+                else Debug.LogWarning($"[Inventory] Saved item could not be restored: " +
+                                      $"{(entry.generated ? entry.roll?.displayName : entry.itemName)}");
             }
         OnChanged?.Invoke();
     }

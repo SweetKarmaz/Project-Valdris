@@ -252,6 +252,9 @@ public class InteractionHUD : MonoBehaviour
 
     static void HandleTalkInteract(NpcController npc)
     {
+        // Corruption gate: a corrupted player may be refused or attacked instead.
+        if (npc.CorruptionBlocksInteraction()) return;
+
         // Delegate to any NPCBase component on the same GameObject
         // (DialogueController, QuestGiver, etc.).
         var npcBase = npc.GetComponent<NPCBase>();

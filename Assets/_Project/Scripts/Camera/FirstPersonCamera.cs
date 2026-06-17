@@ -76,6 +76,10 @@ public class FirstPersonCamera : MonoBehaviour
             _pitch = 0f;
         }
 
+        // Re-lock the cursor whenever a new target is bound so scene transitions
+        // (including from the intro cinematic which unlocks it) don't leave the
+        // camera frozen.
+        if (player != null) LockCursor(true);
     }
 
     // ── Camera update ──────────────────────────────────────────────────────────
@@ -83,6 +87,9 @@ public class FirstPersonCamera : MonoBehaviour
     void LateUpdate()
     {
         if (_player == null) return;
+
+        // Never re-lock during the death screen — cursor must stay free for the UI buttons.
+        if (HUDController.Instance != null && HUDController.Instance.IsDead) return;
 
         // Yield control while paused, a UI window is open, or the cursor is freed.
         if (PauseMenuController.IsPaused || GameUI.IsOpen || UIModal.IsOpen

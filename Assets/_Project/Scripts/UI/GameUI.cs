@@ -261,10 +261,14 @@ public class GameUI : MonoBehaviour
     void DrawInventory(float x, float y, float w, float h)
     {
         _equipSlotRects.Clear();
+        _invHover = null;
         float halfW = w * 0.5f;
         DrawInventoryLeft(x,          y, halfW, h);
         DrawInventoryRight(x + halfW, y, halfW, h);
         HandleDragAndDrop();
+
+        // Rarity-coloured name tooltip for the hovered slot (hidden while dragging).
+        if (_invHover != null && !_dragging) DrawItemNameTooltip(_invHover);
     }
 
     // The icon to show for an item: its assigned Sprite, else (in the editor) a
@@ -274,10 +278,106 @@ public class GameUI : MonoBehaviour
         if (item == null) return null;
         if (item.icon != null) return item.icon.texture;
 #if UNITY_EDITOR
-        return UnityEditor.AssetPreview.GetAssetPreview(item.gameObject);
+        // Generated items are scene-instance clones; AssetPreview only works on
+        // assets, so preview the base prefab they were cloned from instead.
+        GameObject previewGo = item.gameObject;
+        if (item.IsGenerated && item.runtimeRoll != null)
+        {
+            var basePrefab = SaveSystem.Instance?.database?.lootRegistry?
+                .FindByName(item.runtimeRoll.basePrefabName);
+            if (basePrefab != null) previewGo = basePrefab.gameObject;
+        }
+        return UnityEditor.AssetPreview.GetAssetPreview(previewGo);
 #else
         return null;
 #endif
+    }
+
+    // Item currently hovered in the inventory/equipment slots (name tooltip).
+    LootItem _invHover;
+
+    // Subtle dark slot background carrying a hint of the item's rarity colour.
+    public static Color RaritySlotTint(ItemRarity r)
+    {
+        Color c = RarityColor(r);
+        return new Color(0.10f + c.r * 0.10f, 0.10f + c.g * 0.10f, 0.12f + c.b * 0.10f, 0.9f);
+    }
+
+    // A small floating label showing an item's name in its rarity colour.
+    void DrawItemNameTooltip(LootItem item)
+    {
+        if (item == null) return;
+        var style = new GUIStyle(GUI.skin.label) { fontSize = 12, fontStyle = FontStyle.Bold, wordWrap = false };
+        style.normal.textColor = RarityColor(item.rarity);
+        var content = new GUIContent(item.ItemName);
+        Vector2 sz = style.CalcSize(content);
+        const float pad = 6f;
+        var m = Event.current.mousePosition;
+        float tw = sz.x + pad * 2f, th = sz.y + pad;
+        float tx = m.x + 14f, ty = m.y + 14f;
+        var box = new Rect(tx, ty, tw, th);
+        GUI.color = new Color(0.04f, 0.04f, 0.05f, 0.95f);
+        GUI.DrawTexture(box, Texture2D.whiteTexture);
+        GUI.color = new Color(RarityColor(item.rarity).r, RarityColor(item.rarity).g, RarityColor(item.rarity).b, 0.8f);
+        GUI.DrawTexture(new Rect(tx, ty, tw, 2f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        GUI.Label(new Rect(tx + pad, ty + pad * 0.5f, sz.x, sz.y), content, style);
+    }
+
+    // Quality-tier colour for item names.
+    public static Color RarityColor(ItemRarity r) => r switch
+    {
+        ItemRarity.Uncommon  => new Color(0.45f, 0.95f, 0.45f),  // green
+        ItemRarity.Rare      => new Color(0.40f, 0.65f, 1f),     // blue
+        ItemRarity.Epic      => new Color(0.75f, 0.45f, 0.95f),  // purple
+        ItemRarity.Legendary => new Color(1f,    0.6f,  0.2f),   // orange
+        _                    => new Color(0.85f, 0.85f, 0.85f),  // common: gray
+    };
+
+    // A readable label for a stat, including resistance wording.
+    public static string StatLabel(StatType s) => s switch
+    {
+        StatType.MaxHealth          => "Health",
+        StatType.MaxMana            => "Mana",
+        StatType.AttackDamage       => "Attack Damage",
+        StatType.AttackSpeed        => "Attack Speed",
+        StatType.Defense            => "Defense",
+        StatType.MoveSpeed          => "Move Speed",
+        StatType.PhysicalCritChance => "Physical Crit",
+        StatType.SpellCritChance    => "Spell Crit",
+        StatType.CritDamage         => "Crit Damage",
+        StatType.FireResist         => "Fire resistance",
+        StatType.IceResist          => "Frost resistance",
+        StatType.LightningResist    => "Storm resistance",
+        StatType.HolyResist         => "Holy resistance",
+        StatType.CorruptionResist   => "Corruption resistance",
+        _                           => s.ToString(),
+    };
+
+    // Multi-line breakdown of an item's actual stats (damage/defense, each
+    // modifier, each elemental rider). Empty for plain items with no stats.
+    static string BuildItemStats(LootItem item)
+    {
+        var lines = new List<string>();
+
+        if (item.IsWeapon && item.weaponDamage != 0f)
+            lines.Add($"{item.weaponDamage:0} physical damage" + (item.isTwoHanded ? "  (two-handed)" : ""));
+        else if (!item.IsWeapon && item.armorValue != 0f)
+            lines.Add($"+{item.armorValue:0} armor");
+
+        if (item.statModifiers != null)
+            foreach (var m in item.statModifiers)
+            {
+                string sign = m.amount >= 0 ? "+" : "";
+                string val  = m.mode == ModifierMode.Percent ? $"{sign}{m.amount:0}%" : $"{sign}{m.amount:0}";
+                lines.Add($"{val} {StatLabel(m.stat)}");
+            }
+
+        if (item.onHitEffects != null)
+            foreach (var e in item.onHitEffects)
+                if (e.damage > 0f) lines.Add($"+{e.damage:0} {e.type} damage");
+
+        return string.Join("\n", lines);
     }
 
     // Draws the dragged item under the cursor and, on release, equips it if it
@@ -310,7 +410,7 @@ public class GameUI : MonoBehaviour
                 foreach (var (slot, rect) in _equipSlotRects)
                     if (rect.Contains(e.mousePosition) && InventorySystem.CanEquipToSlot(_dragItem, slot))
                     {
-                        if (InventorySystem.Instance?.EquipLootItem(_dragItem) == true)
+                        if (InventorySystem.Instance?.EquipLootItem(_dragItem, slot) == true)
                             _selectedInventoryItem = null;
                         break;
                     }
@@ -382,12 +482,14 @@ public class GameUI : MonoBehaviour
             if (occupied == null && equip == EquipSlot.MainHand)
                 occupied = InventorySystem.Instance?.GetEquippedThrown();
 
-            // Background: green tint when occupied, dark otherwise.
+            // Background: subtle rarity tint when occupied, dark otherwise.
             GUI.color = occupied != null
-                ? new Color(0.18f, 0.38f, 0.18f, 1f)
+                ? RaritySlotTint(occupied.rarity)
                 : new Color(0.12f, 0.12f, 0.12f, 0.9f);
             GUI.DrawTexture(slotRect, Texture2D.whiteTexture);
             GUI.color = Color.white;
+
+            if (occupied != null && slotRect.Contains(e.mousePosition)) _invHover = occupied;
 
             // Border: gold ONLY on the slot the held item can go into.
             bool validTarget = holding != null && InventorySystem.CanEquipToSlot(holding, equip);
@@ -423,7 +525,7 @@ public class GameUI : MonoBehaviour
                 else if (_selectedInventoryItem != null
                          && InventorySystem.CanEquipToSlot(_selectedInventoryItem, equip))
                 {
-                    if (InventorySystem.Instance?.EquipLootItem(_selectedInventoryItem) == true)
+                    if (InventorySystem.Instance?.EquipLootItem(_selectedInventoryItem, equip) == true)
                         _selectedInventoryItem = null;
                 }
                 e.Use();
@@ -479,10 +581,31 @@ public class GameUI : MonoBehaviour
 
     void DrawInventoryRight(float x, float y, float w, float h)
     {
-        float gridH   = h * 2f / 3f;
-        float detailH = h - gridH;
-        DrawInventoryGrid(x, y,           w, gridH);
-        DrawItemDetail   (x, y + gridH,   w, detailH);
+        const float sortH = 26f;
+        DrawSortBar(x, y, w, sortH);
+
+        float gridH   = (h - sortH) * 2f / 3f;
+        float detailH = h - sortH - gridH;
+        DrawInventoryGrid(x, y + sortH,          w, gridH);
+        DrawItemDetail   (x, y + sortH + gridH,  w, detailH);
+    }
+
+    void DrawSortBar(float x, float y, float w, float h)
+    {
+        var lbl = new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleLeft };
+        lbl.normal.textColor = new Color(0.7f, 0.7f, 0.7f);
+        GUI.Label(new Rect(x, y, 36f, h), "Sort:", lbl);
+
+        var modes = new[] { InventorySortMode.Name, InventorySortMode.Rarity,
+                            InventorySortMode.Value, InventorySortMode.Type };
+        float bx = x + 38f;
+        float bw = Mathf.Min(70f, (w - 38f) / modes.Length - 4f);
+        foreach (var m in modes)
+        {
+            if (GUI.Button(new Rect(bx, y + 2f, bw, h - 4f), m.ToString()))
+                InventorySystem.Instance?.SortInventory(m);
+            bx += bw + 4f;
+        }
     }
 
     void DrawInventoryGrid(float x, float y, float w, float h)
@@ -518,8 +641,11 @@ public class GameUI : MonoBehaviour
             float sy  = gap * 0.5f + row * rowH;
             var   sr  = new Rect(sx, sy, slotSize, slotSize);
 
-            // Slot background.
-            GUI.color = new Color(0.10f, 0.10f, 0.10f, 0.85f);
+            bool hasItem = i < count && slots != null && slots[i].item != null;
+
+            // Slot background — subtle rarity tint behind an item, plain dark when empty.
+            GUI.color = hasItem ? RaritySlotTint(slots[i].item.rarity)
+                                : new Color(0.10f, 0.10f, 0.10f, 0.85f);
             GUI.DrawTexture(sr, Texture2D.whiteTexture);
             GUI.color = Color.white;
 
@@ -528,11 +654,11 @@ public class GameUI : MonoBehaviour
                 var  invSlot  = slots[i];
                 bool selected = invSlot.item == _selectedInventoryItem;
 
-                // Border: bright green when selected, dim white otherwise.
+                // Border: green when selected, rarity color when occupied, dim white when empty.
                 GUI.color = selected
                     ? new Color(0.25f, 0.95f, 0.25f, 1f)
-                    : new Color(1f, 1f, 1f, 0.22f);
-                DrawBorder(sr, 1.5f);
+                    : (invSlot.item != null ? RarityColor(invSlot.item.rarity) : new Color(1f, 1f, 1f, 0.22f));
+                DrawBorder(sr, 2f);
                 GUI.color = Color.white;
 
                 // Prefab image if available, otherwise the (truncated) name.
@@ -563,6 +689,22 @@ public class GameUI : MonoBehaviour
                     GUI.Label(new Rect(sx, sy, slotSize - 3f, slotSize - 2f),
                         invSlot.count.ToString(), cntStyle);
                 }
+
+                // Gold-value overlay (bottom-left, on a small dark pill for legibility).
+                if (invSlot.item.goldValue > 0)
+                {
+                    string vtxt = $"{invSlot.item.goldValue}g";
+                    var valStyle = new GUIStyle(GUI.skin.label)
+                        { fontSize = 9, fontStyle = FontStyle.Bold, alignment = TextAnchor.LowerLeft };
+                    valStyle.normal.textColor = new Color(1f, 0.85f, 0.25f);
+                    float vw = valStyle.CalcSize(new GUIContent(vtxt)).x + 4f;
+                    GUI.color = new Color(0f, 0f, 0f, 0.55f);
+                    GUI.DrawTexture(new Rect(sx + 2f, sy + slotSize - 14f, vw, 12f), Texture2D.whiteTexture);
+                    GUI.color = Color.white;
+                    GUI.Label(new Rect(sx + 4f, sy + slotSize - 15f, vw, 12f), vtxt, valStyle);
+                }
+
+                if (sr.Contains(Event.current.mousePosition)) _invHover = invSlot.item;
 
                 // Mouse down selects the item and begins a potential drag.
                 var e = Event.current;
@@ -601,22 +743,37 @@ public class GameUI : MonoBehaviour
             var item = _selectedInventoryItem;
             var nameStyle = new GUIStyle(GUI.skin.label)
                 { fontStyle = FontStyle.Bold, fontSize = 15 };
+            nameStyle.normal.textColor = RarityColor(item.rarity);
             GUI.Label(new Rect(x + 10f, y + 8f, w - 20f, 24f), item.ItemName, nameStyle);
 
             // Where it equips (helps spot mis-tagged items, e.g. a bracelet on Chest).
             var slot = InventorySystem.GetEquipSlot(item);
-            string equipLine = slot.HasValue
-                ? $"Type: {item.itemType}   •   Equips: {slot.Value}"
-                : $"Type: {item.itemType}   •   Not equippable";
+            string equipWhere = InventorySystem.IsRing(item) ? "Ring (any slot)"
+                              : slot.HasValue ? slot.Value.ToString() : null;
+            string equipLine = $"{item.rarity}  •  {item.itemType}"
+                + (equipWhere != null ? $"  •  {equipWhere}" : "")
+                + $"  •  {item.goldValue} gold";
 
             var subStyle = new GUIStyle(GUI.skin.label) { fontSize = 12 };
             subStyle.normal.textColor = new Color(0.7f, 0.8f, 0.95f);
             GUI.Label(new Rect(x + 10f, y + 32f, w - 20f, 20f), equipLine, subStyle);
 
+            // Explicit stat block: base damage/defense, each modifier, each rider.
+            var statStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, richText = true };
+            statStyle.normal.textColor = new Color(0.75f, 0.95f, 0.75f);
+            string stats = BuildItemStats(item);
+            float statsBottom = y + 52f;
+            if (stats.Length > 0)
+            {
+                float sh = statStyle.CalcHeight(new GUIContent(stats), w - 20f);
+                GUI.Label(new Rect(x + 10f, y + 52f, w - 20f, sh), stats, statStyle);
+                statsBottom += sh + 4f;
+            }
+
             var bodyStyle = new GUIStyle(GUI.skin.label) { wordWrap = true, fontSize = 12, richText = true };
-            bodyStyle.normal.textColor = new Color(0.85f, 0.85f, 0.85f);
+            bodyStyle.normal.textColor = new Color(0.8f, 0.8f, 0.8f);
             if (!string.IsNullOrWhiteSpace(item.flavorText))
-                GUI.Label(new Rect(x + 10f, y + 52f, w - 20f, h - 60f),
+                GUI.Label(new Rect(x + 10f, statsBottom, w - 20f, h - (statsBottom - y) - 8f),
                     $"<i>{item.flavorText}</i>", bodyStyle);
         }
         else
@@ -633,8 +790,14 @@ public class GameUI : MonoBehaviour
     // combat-derived stats on the right. Each stat shows its modifiers and the
     // source (gear / buff / skill) where any apply.
 
+    // Source breakdown captured while a stat row is hovered (drawn after the
+    // scroll view, where mouse coords are back in screen space).
+    string _statHover;
+
     void DrawCharacter(float x, float y, float w, float h)
     {
+        _statHover = null;
+
         var header = new GUIStyle(GUI.skin.label)
             { alignment = TextAnchor.UpperCenter, fontStyle = FontStyle.Bold, fontSize = 16 };
         GUI.Label(new Rect(x, y + 2f, w, 26f), "Character", header);
@@ -653,11 +816,17 @@ public class GameUI : MonoBehaviour
             return;
         }
 
-        float colW   = (w - 24f) * 0.5f;
-        float rightX0 = colW + 24f;
+        const float colGap = 16f;
+        float colW  = (w - colGap * 2f) / 3f;
+        float midX0 = colW + colGap;            // center column
+        float rightX0 = (colW + colGap) * 2f;   // right column
 
-        var viewport = new Rect(x, listY, w, listH);
-        var content  = new Rect(0, 0, w - 20f, Mathf.Max(listH, 470f));
+        // Reserve a strip at the bottom for the Corruption bar (outside the scroll).
+        const float corruptStripH = 48f;
+        float scrollH = Mathf.Max(80f, listH - corruptStripH);
+
+        var viewport = new Rect(x, listY, w, scrollH);
+        var content  = new Rect(0, 0, w - 20f, Mathf.Max(scrollH, 470f));
         _scrollCharacter = GUI.BeginScrollView(viewport, _scrollCharacter, content);
 
         // ── Left: attributes ──
@@ -667,28 +836,155 @@ public class GameUI : MonoBehaviour
         AttrRow(0f, ref cy, colW, "Dexterity",    stats.dexterity,    stats.Dexterity,    StatType.Dexterity,    buffs, "Attack speed, defense, physical crit");
         AttrRow(0f, ref cy, colW, "Constitution", stats.constitution, stats.Constitution, StatType.Constitution, buffs, "Maximum health");
         AttrRow(0f, ref cy, colW, "Intelligence", stats.intelligence, stats.Intelligence, StatType.Intelligence, buffs, "Maximum mana");
-        AttrRow(0f, ref cy, colW, "Wisdom",       stats.wisdom,       stats.Wisdom,       StatType.Wisdom,       buffs, "Mana, corruption resistance");
+        AttrRow(0f, ref cy, colW, "Wisdom",       stats.wisdom,       stats.Wisdom,       StatType.Wisdom,       buffs, "Mana; slows corruption gain");
         AttrRow(0f, ref cy, colW, "Charisma",     stats.charisma,     stats.Charisma,     StatType.Charisma,     buffs, "Vendor prices, dialogue");
         AttrRow(0f, ref cy, colW, "Spell Acuity", stats.spellAcuity,  stats.SpellAcuity,  StatType.SpellAcuity,  buffs, "Spell power, spell crit");
 
-        // ── Right: resources + combat ──
+        // ── Center: vitals + combat ──
         cy = 0f;
-        StatSection(rightX0, ref cy, colW, "Resources");
-        PlainRow(rightX0, ref cy, colW, "Health", $"{stats.CurrentHealth:0} / {stats.MaxHealth:0}", StatType.MaxHealth, buffs);
-        PlainRow(rightX0, ref cy, colW, "Mana",   $"{stats.CurrentMana:0} / {stats.MaxMana:0}",     StatType.MaxMana,   buffs);
+        StatSection(midX0, ref cy, colW, "Vitals");
+        PlainRow(midX0, ref cy, colW, "Health", $"{stats.CurrentHealth:0} / {stats.MaxHealth:0}", StatType.MaxHealth, buffs);
+        PlainRow(midX0, ref cy, colW, "Mana",   $"{stats.CurrentMana:0} / {stats.MaxMana:0}",     StatType.MaxMana,   buffs);
 
-        StatSection(rightX0, ref cy, colW, "Combat");
-        DerivedRow(rightX0, ref cy, colW, "Attack Damage",  stats.AttackDamage,            "0.#", StatType.AttackDamage,      buffs);
-        DerivedRow(rightX0, ref cy, colW, "Attack Speed",   stats.AttackSpeed,             "0.##", StatType.AttackSpeed,      buffs);
-        DerivedRow(rightX0, ref cy, colW, "Defense",        stats.Defense,                 "0.#", StatType.Defense,           buffs);
-        DerivedRow(rightX0, ref cy, colW, "Physical Crit",  stats.PhysicalCritChance,      "0.#", StatType.PhysicalCritChance, buffs, "%");
-        DerivedRow(rightX0, ref cy, colW, "Spell Crit",     stats.SpellCritChance,         "0.#", StatType.SpellCritChance,   buffs, "%");
-        DerivedRow(rightX0, ref cy, colW, "Crit Damage",    stats.CritMultiplier,          "0.##", StatType.CritDamage,       buffs, "x");
-        // Acuity-driven values (no direct modifier source to list).
-        PlainRow(rightX0, ref cy, colW, "Spell Power",        $"{stats.SpellPowerMultiplier:0.##}x",            StatType.SpellAcuity, null);
-        PlainRow(rightX0, ref cy, colW, "Corruption Resist",  $"{stats.CorruptionResistance * 100f:0}%",        StatType.Wisdom,      null);
+        StatSection(midX0, ref cy, colW, "Combat");
+        DerivedRow(midX0, ref cy, colW, "Attack Damage",  stats.AttackDamage,            "0.#", StatType.AttackDamage,      buffs);
+        DerivedRow(midX0, ref cy, colW, "Attack Speed",   stats.AttackSpeed,             "0.##", StatType.AttackSpeed,      buffs);
+        DerivedRow(midX0, ref cy, colW, "Defense",        stats.Defense,                 "0.#", StatType.Defense,           buffs);
+        DerivedRow(midX0, ref cy, colW, "Physical Crit",  stats.PhysicalCritChance,      "0.#", StatType.PhysicalCritChance, buffs, "%");
+        DerivedRow(midX0, ref cy, colW, "Spell Crit",     stats.SpellCritChance,         "0.#", StatType.SpellCritChance,   buffs, "%");
+        DerivedRow(midX0, ref cy, colW, "Crit Damage",    stats.CritMultiplier,          "0.##", StatType.CritDamage,       buffs, "x");
+        // Acuity-driven value (no direct modifier source to list).
+        PlainRow(midX0, ref cy, colW, "Spell Power",      $"{stats.SpellPowerMultiplier:0.##}x",            StatType.SpellAcuity, null);
+
+        // ── Right: resistances (percent of incoming damage reduced) ──
+        cy = 0f;
+        StatSection(rightX0, ref cy, colW, "Resistances");
+        PlainRow(rightX0, ref cy, colW, "Fire",       $"{stats.ResistancePercent(DamageType.Fire):0}%",       StatType.FireResist,       buffs);
+        PlainRow(rightX0, ref cy, colW, "Ice",        $"{stats.ResistancePercent(DamageType.Ice):0}%",        StatType.IceResist,        buffs);
+        PlainRow(rightX0, ref cy, colW, "Lightning",  $"{stats.ResistancePercent(DamageType.Lightning):0}%",  StatType.LightningResist,  buffs);
+        PlainRow(rightX0, ref cy, colW, "Holy",       $"{stats.ResistancePercent(DamageType.Holy):0}%",       StatType.HolyResist,       buffs);
+        PlainRow(rightX0, ref cy, colW, "Corruption", $"{stats.ResistancePercent(DamageType.Corruption):0}%", StatType.CorruptionResist, buffs);
 
         GUI.EndScrollView();
+
+        DrawCorruptionBar(x, listY + scrollH + 4f, w, corruptStripH - 6f);
+
+        // Stat-source tooltip (captured during row drawing inside the scroll).
+        if (_statHover != null) DrawStatHoverTooltip(_statHover, x, w);
+    }
+
+    void DrawStatHoverTooltip(string text, float clampX, float clampW)
+    {
+        var ts = new GUIStyle(GUI.skin.label) { fontSize = 11, wordWrap = true };
+        ts.normal.textColor = new Color(0.92f, 0.92f, 0.92f);
+        const float tw = 240f, pad = 7f;
+        float th = ts.CalcHeight(new GUIContent(text), tw - pad * 2f);
+        var m = Event.current.mousePosition;
+        float tx = Mathf.Clamp(m.x + 14f, clampX, clampX + clampW - tw);
+        float ty = m.y + 14f;
+        var box = new Rect(tx, ty, tw, th + pad * 2f);
+        GUI.color = new Color(0.05f, 0.05f, 0.07f, 0.97f);
+        GUI.DrawTexture(box, Texture2D.whiteTexture);
+        GUI.color = new Color(0.4f, 0.6f, 1f, 0.9f);
+        GUI.DrawTexture(new Rect(box.x, box.y, box.width, 2f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        GUI.Label(new Rect(tx + pad, ty + pad, tw - pad * 2f, th), text, ts);
+    }
+
+    // Records (for the post-scroll tooltip) the named per-source breakdown of a
+    // stat when its row is hovered. Mouse coords here are scroll-content space.
+    void CaptureStatHover(float x, float top, float w, float bottom, StatType stat, CharacterBuffs buffs)
+    {
+        if (!new Rect(x, top, w, bottom - top).Contains(Event.current.mousePosition)) return;
+        string bd = BuildSourceBreakdown(stat, buffs);
+        if (bd.Length > 0) _statHover = bd;
+    }
+
+    // Names each individual contributor (equipped item / buff / skills) to a stat.
+    static string BuildSourceBreakdown(StatType stat, CharacterBuffs buffs)
+    {
+        var lines = new List<string>();
+        string Mod(StatModifier m) =>
+            (m.amount >= 0 ? "+" : "") + (m.mode == ModifierMode.Percent ? $"{m.amount:0.#}%" : $"{m.amount:0.#}");
+
+        var inv = InventorySystem.Instance;
+        if (inv != null)
+            foreach (var kv in inv.GetAllEquippedLoot())
+            {
+                var it = kv.Value;
+                if (it == null) continue;
+                if (stat == StatType.Defense && it.armorValue != 0f)
+                    lines.Add($"{it.ItemName}: +{it.armorValue:0}");
+                if (it.statModifiers != null)
+                    foreach (var m in it.statModifiers)
+                        if (m.stat == stat) lines.Add($"{it.ItemName}: {Mod(m)}");
+            }
+
+        if (buffs != null)
+            foreach (var ab in buffs.Active)
+            {
+                if (ab?.data?.modifiers == null) continue;
+                if (ab.data.isHidden && !ab.revealed) continue;
+                foreach (var m in ab.data.modifiers)
+                    if (m.stat == stat) lines.Add($"{ab.data.buffName}: {Mod(m)}");
+            }
+
+        var sk = SkillSystem.Instance;
+        if (sk != null)
+        {
+            float f = sk.TotalFlat(stat), p = sk.TotalPercent(stat);
+            if (Mathf.Abs(f) > 0.01f) lines.Add($"Skills: {(f >= 0 ? "+" : "")}{f:0.#}");
+            if (Mathf.Abs(p) > 0.01f) lines.Add($"Skills: {(p >= 0 ? "+" : "")}{p:0.#}%");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    const string CorruptionHelp =
+        "Causing Corruption damage and certain tainted zones increase your Corruption " +
+        "level – you must visit a shrine (or cleansing ground) to lower it. Some NPCs " +
+        "won't deal with you, or will attack on sight, if it climbs too high. High " +
+        "Wisdom slows how fast it fills.";
+
+    void DrawCorruptionBar(float x, float y, float w, float h)
+    {
+        var ct   = CorruptionTracker.Instance;
+        float pct  = ct != null ? Mathf.Clamp(ct.Percent, 0f, 100f) : 0f;
+        float norm = ct != null ? Mathf.Clamp01(ct.Normalized)      : 0f;
+
+        var lbl = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 12 };
+        lbl.normal.textColor = new Color(0.78f, 0.55f, 0.95f);
+        GUI.Label(new Rect(x, y, w, 16f), $"Corruption: {pct:0}%", lbl);
+
+        float by = y + 17f, bh = h - 17f;
+        var barRect = new Rect(x, by, w, bh);
+
+        GUI.color = new Color(0.12f, 0.09f, 0.15f, 1f);
+        GUI.DrawTexture(barRect, Texture2D.whiteTexture);
+        GUI.color = new Color(0.55f, 0.18f, 0.80f, 1f);
+        GUI.DrawTexture(new Rect(x, by, w * norm, bh), Texture2D.whiteTexture);
+        GUI.color = new Color(1f, 1f, 1f, 0.20f);
+        GUI.DrawTexture(new Rect(x, by, w, 1f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        // Hover anywhere over the label + bar shows the explanatory tooltip (above the bar).
+        var hover = new Rect(x, y, w, h);
+        if (hover.Contains(Event.current.mousePosition))
+        {
+            var ts = new GUIStyle(GUI.skin.label) { fontSize = 12, wordWrap = true };
+            ts.normal.textColor = new Color(0.92f, 0.92f, 0.92f);
+            const float tw = 300f, pad = 8f;
+            float th = ts.CalcHeight(new GUIContent(CorruptionHelp), tw - pad * 2f);
+            float tx = Mathf.Clamp(Event.current.mousePosition.x, x, x + w - tw);
+            float ty = y - th - pad * 2f - 4f;
+            var box = new Rect(tx, ty, tw, th + pad * 2f);
+            GUI.color = new Color(0.05f, 0.05f, 0.07f, 0.96f);
+            GUI.DrawTexture(box, Texture2D.whiteTexture);
+            GUI.color = new Color(0.55f, 0.18f, 0.80f, 0.9f);
+            GUI.DrawTexture(new Rect(box.x, box.y, box.width, 2f), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(tx + pad, ty + pad, tw - pad * 2f, th), CorruptionHelp, ts);
+        }
     }
 
     void StatSection(float x, ref float cy, float w, string title)
@@ -703,6 +999,7 @@ public class GameUI : MonoBehaviour
     void AttrRow(float x, ref float cy, float w, string label, float baseVal, float effVal,
         StatType stat, CharacterBuffs buffs, string affects)
     {
+        float top = cy;
         var name = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 13 };
         GUI.Label(new Rect(x, cy, w, 18f), $"{label}: {effVal:0.#}", name);
         cy += 17f;
@@ -722,11 +1019,13 @@ public class GameUI : MonoBehaviour
         aff.normal.textColor = new Color(0.55f, 0.55f, 0.55f);
         GUI.Label(new Rect(x + 8f, cy, w - 8f, 16f), "Affects: " + affects, aff);
         cy += 20f;
+        CaptureStatHover(x, top, w, cy, stat, buffs);
     }
 
     void DerivedRow(float x, ref float cy, float w, string label, float value, string fmt,
         StatType stat, CharacterBuffs buffs, string suffix = "")
     {
+        float top = cy;
         var name = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 13 };
         string shown = suffix == "x" ? $"{value.ToString(fmt)}x" : $"{value.ToString(fmt)}{suffix}";
         GUI.Label(new Rect(x, cy, w, 18f), $"{label}: {shown}", name);
@@ -741,11 +1040,13 @@ public class GameUI : MonoBehaviour
             cy += 15f;
         }
         cy += 5f;
+        CaptureStatHover(x, top, w, cy, stat, buffs);
     }
 
     void PlainRow(float x, ref float cy, float w, string label, string value,
         StatType stat, CharacterBuffs buffs)
     {
+        float top = cy;
         var name = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 13 };
         GUI.Label(new Rect(x, cy, w, 18f), $"{label}: {value}", name);
         cy += 17f;
@@ -762,6 +1063,7 @@ public class GameUI : MonoBehaviour
             }
         }
         cy += 5f;
+        CaptureStatHover(x, top, w, cy, stat, buffs);
     }
 
     // Builds a "+5 gear, +10% buff, …" string of the modifiers acting on a stat,

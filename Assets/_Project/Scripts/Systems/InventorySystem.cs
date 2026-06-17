@@ -22,11 +22,16 @@ public class InventorySlot
 }
 
 // Serializable snapshot used by SaveSystem and the shared Inventory class.
+// A randomized item stores its full ItemRoll (generated = true); a plain prefab
+// item stores just its name. JsonUtility never serializes null for a nested
+// [Serializable] class, so `generated` is the authoritative discriminator.
 [Serializable]
 public class InventorySlotSave
 {
-    public string itemName;
-    public int    count;
+    public string   itemName;
+    public int      count;
+    public bool     generated;
+    public ItemRoll roll;
 }
 
 [Serializable]
@@ -34,6 +39,8 @@ public class EquippedLootSave
 {
     public EquipSlot slot;
     public string    itemName;
+    public bool      generated;
+    public ItemRoll  roll;
 }
 
 // The player's inventory: a thin singleton wrapper around the shared Inventory
@@ -84,11 +91,36 @@ public class InventorySystem : MonoBehaviour
          || item.projectileType == ProjectileType.Javelin
          || item.projectileType == ProjectileType.Dart);
 
-    public static bool CanEquipToSlot(LootItem item, EquipSlot slot) => GetEquipSlot(item) == slot;
+    // The four interchangeable ring slots.
+    static readonly EquipSlot[] RingSlots =
+        { EquipSlot.Ring1, EquipSlot.Ring2, EquipSlot.Ring3, EquipSlot.Ring4 };
+
+    static bool IsRingSlot(EquipSlot slot) =>
+        slot == EquipSlot.Ring1 || slot == EquipSlot.Ring2 ||
+        slot == EquipSlot.Ring3 || slot == EquipSlot.Ring4;
+
+    // A ring is an Accessory whose base slot is one of the ring slots. Rings can
+    // be equipped into ANY free ring slot, not just their authored one.
+    public static bool IsRing(LootItem item) =>
+        item != null && item.itemType == LootItemType.Accessory && IsRingSlot(item.equipSlot);
+
+    public static bool CanEquipToSlot(LootItem item, EquipSlot slot) =>
+        IsRing(item) ? IsRingSlot(slot) : GetEquipSlot(item) == slot;
+
+    // Picks the ring slot to equip into: honour an explicit choice, else the first
+    // free ring slot, else fall back to Ring1 (displacing it).
+    EquipSlot ResolveRingSlot(EquipSlot? preferred)
+    {
+        if (preferred.HasValue && IsRingSlot(preferred.Value)) return preferred.Value;
+        foreach (var s in RingSlots) if (!_equippedLoot.ContainsKey(s)) return s;
+        return EquipSlot.Ring1;
+    }
 
     // Equips an equippable LootItem into its slot. Removes it from inventory,
     // displaces whatever was previously in the slot (returning it to inventory).
-    public bool EquipLootItem(LootItem item)
+    // preferredSlot lets the UI target a specific ring slot (Ring1-4); ignored
+    // for non-ring items.
+    public bool EquipLootItem(LootItem item, EquipSlot? preferredSlot = null)
     {
         EquipSlot? resolved = GetEquipSlot(item);
         if (resolved == null) return false;
@@ -98,7 +130,8 @@ public class InventorySystem : MonoBehaviour
             return false;
         }
 
-        EquipSlot slot = resolved.Value;
+        // Rings can go into any of the four ring slots.
+        EquipSlot slot = IsRing(item) ? ResolveRingSlot(preferredSlot) : resolved.Value;
 
         // Thrown weapons use the dedicated thrown slot — the stack stays in the
         // inventory and is consumed per throw. Clear any held Main-Hand weapon.
@@ -255,6 +288,8 @@ public class InventorySystem : MonoBehaviour
 
     public bool RemoveLootItem(LootItem item, int count = 1) => _inventory.Remove(item, count);
 
+    public void SortInventory(InventorySortMode mode) => _inventory.Sort(mode);
+
     // ── Queries ───────────────────────────────────────────────────────────────
 
     public IReadOnlyList<InventorySlot> GetSlots() => _inventory.Slots;
@@ -313,18 +348,25 @@ public class InventorySystem : MonoBehaviour
     {
         var saves = new List<EquippedLootSave>();
         foreach (var kvp in _equippedLoot)
-            if (kvp.Value != null)
+        {
+            if (kvp.Value == null) continue;
+            if (kvp.Value.IsGenerated)
+                saves.Add(new EquippedLootSave { slot = kvp.Key, generated = true, roll = kvp.Value.runtimeRoll });
+            else
                 saves.Add(new EquippedLootSave { slot = kvp.Key, itemName = kvp.Value.ItemName });
+        }
         return saves;
     }
 
     public void RestoreEquippedLoot(List<EquippedLootSave> saved, LootRegistry registry)
     {
         _equippedLoot.Clear();
-        if (saved == null || registry == null) return;
+        if (saved == null) return;
         foreach (var entry in saved)
         {
-            var item = registry.FindByName(entry.itemName);
+            LootItem item = entry.generated
+                ? LootItemFactory.Build(entry.roll)
+                : registry != null ? registry.FindByName(entry.itemName) : null;
             if (item == null) { Debug.LogWarning($"[Inventory] Saved equipped item not found: {entry.itemName}"); continue; }
             _equippedLoot[entry.slot] = item;
             OnLootEquipped?.Invoke(entry.slot, item);

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -39,15 +40,19 @@ public class SceneGameManager : MonoBehaviour
     protected virtual void Start()
     {
         // Ensure the Persistent scene's singleton systems exist even if this
-        // scene was opened directly in the editor.
+        // scene was opened directly in the editor. LoadScene(Additive) queues
+        // the load for end-of-frame, so PlayerManager may not exist yet — the
+        // coroutine below waits one or more frames until it does.
         GameBootstrap.EnsureSystems();
+        StartCoroutine(InitWhenReady());
+    }
 
-        if (PlayerManager.Instance != null)
-            PlayerManager.Instance.InitializeForScene(this);
-        else
-            Debug.LogWarning($"[{GetType().Name}] PlayerManager not found. " +
-                             "Add a PlayerManager component to a GameObject in the Persistent scene.");
+    IEnumerator InitWhenReady()
+    {
+        while (PlayerManager.Instance == null)
+            yield return null;
 
+        PlayerManager.Instance.InitializeForScene(this);
         OnSceneReady();
     }
 

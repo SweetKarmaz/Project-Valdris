@@ -14,9 +14,14 @@ public class LootContainer : MonoBehaviour
 
     public enum EmptyBehavior { KeepEmpty, Hide, Destroy }
 
+    [Header("Loot Quality")]
+    [Tooltip("Rarity of this container. Drives the randomized-loot roll (higher rarity = " +
+             "better/more items and gold). See LootDropTable.")]
+    public ItemRarity rarity = ItemRarity.Common;
+
     [Header("Contents")]
     [Tooltip("Items this container starts with. dropChance < 1 makes an item a random roll, " +
-             "generated once when first opened.")]
+             "generated once when first opened. These are added ON TOP of the randomized roll.")]
     public List<NpcItem> startingContents = new();
     public int goldMin;
     public int goldMax;
@@ -85,10 +90,21 @@ public class LootContainer : MonoBehaviour
     void RollContents()
     {
         _rolled = true;
+
+        // Randomized loot based on this container's rarity.
+        foreach (var r in LootDropTable.Roll(rarity))
+        {
+            var item = LootGenerator.GenerateItem(r);
+            if (item != null) _loot.Add(item, 1);
+        }
+
+        // Hand-authored starting contents, added on top.
         foreach (var entry in startingContents)
             if (entry.lootItem != null && Random.value <= entry.dropChance)
                 _loot.Add(entry.lootItem, Mathf.Max(1, entry.quantity));
-        _gold = goldMax > goldMin ? Random.Range(goldMin, goldMax + 1) : goldMin;
+
+        int baseGold = goldMax > goldMin ? Random.Range(goldMin, goldMax + 1) : goldMin;
+        _gold = Mathf.RoundToInt(baseGold * LootDropTable.GoldMultiplier(rarity));
     }
 
     void OnGUI()

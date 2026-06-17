@@ -49,8 +49,11 @@ public class PlayerStats : MonoBehaviour, IDamageable
     public float critPerAcuity = 0.5f;
     [Tooltip("Damage multiplier on a critical hit.")]
     public float baseCritMultiplier = 1.5f;
-    [Tooltip("Fraction of corruption gain resisted per point of Wisdom above 10. Capped at 75%.")]
+    [Tooltip("Fraction of INCOMING corruption resisted per point of Wisdom above 10. Capped at 75%.")]
     public float corruptionResistPerWisdom = 0.01f;
+    [Tooltip("Fraction of corruption GAIN (from your own actions/zones) reduced per point of " +
+             "Wisdom above 10. A small effect — capped at 50%.")]
+    public float corruptionGainResistPerWisdom = 0.01f;
 
     public float CurrentHealth { get; private set; }
     public float CurrentMana { get; private set; }
@@ -91,9 +94,36 @@ public class PlayerStats : MonoBehaviour, IDamageable
     // Multiplier applied to spell damage/potency. Acuity 10 = 1.0 (neutral).
     public float SpellPowerMultiplier => Mathf.Max(0.1f, 1f + (SpellAcuity - 10f) * spellPowerPerAcuity);
 
-    // Fraction of incoming corruption resisted. Wisdom 10 = none.
+    // Fraction of incoming corruption resisted. Wisdom 10 = none. (Reserved for
+    // future incoming corruption-damage mitigation.)
     public float CorruptionResistance =>
         Mathf.Clamp((Wisdom - 10f) * corruptionResistPerWisdom, 0f, 0.75f);
+
+    // Fraction of corruption GAIN reduced (self-corruption from your own actions).
+    // A small, separate effect from incoming-corruption resistance. Wisdom 10 = none.
+    public float CorruptionGainResistance =>
+        Mathf.Clamp((Wisdom - 10f) * corruptionGainResistPerWisdom, 0f, 0.5f);
+
+    // ---- Elemental resistances ----
+    // Percent of incoming damage of a given type that is reduced. Sourced from
+    // gear/buffs/skills (resistance StatTypes), plus a Wisdom contribution to
+    // Corruption. Physical isn't a resistance — it's mitigated by Defense.
+    // Capped at 75% so a type is never fully negated.
+    public float ResistancePercent(DamageType type)
+    {
+        float total = type switch
+        {
+            DamageType.Fire       => Flat(StatType.FireResist),
+            DamageType.Ice        => Flat(StatType.IceResist),
+            DamageType.Lightning  => Flat(StatType.LightningResist),
+            DamageType.Holy       => Flat(StatType.HolyResist),
+            // Poison is folded into Corruption gameplay-wise (shares its resist).
+            DamageType.Corruption => Flat(StatType.CorruptionResist) + CorruptionResistance * 100f,
+            DamageType.Poison     => Flat(StatType.CorruptionResist) + CorruptionResistance * 100f,
+            _                     => 0f,
+        };
+        return Mathf.Clamp(total, 0f, 75f);
+    }
 
     // ---- Critical hits ----
     // Physical crit scales with Dexterity; spell crit with Spell Acuity.
@@ -180,11 +210,11 @@ public class PlayerStats : MonoBehaviour, IDamageable
 
     public void TakeDamage(DamageInfo info)
     {
-        // Physical is reduced by Defense; elemental/corruption deal full damage
-        // (mitigation for those rides on resisting the debuff for now).
+        // Physical is reduced by Defense; elemental/corruption are reduced by the
+        // matching elemental resistance (percent of damage).
         float damage = info.type == DamageType.Physical
             ? Mathf.Max(0f, info.amount - Defense)
-            : Mathf.Max(0f, info.amount);
+            : Mathf.Max(0f, info.amount * (1f - ResistancePercent(info.type) / 100f));
 
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
         CombatTextSystem.Instance?.ShowDamage(transform, damage, info.isCrit, info.type);

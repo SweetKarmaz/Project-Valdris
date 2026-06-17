@@ -199,9 +199,24 @@ public class PlayerManager : MonoBehaviour
         player.AddComponent<CharacterBuffs>();
         player.AddComponent<CharacterResistances>();
         player.AddComponent<PlayerController>();
-        player.AddComponent<PlayerCombat>();
+
+        // Ensure the HUD overlay exists (once, persistent across scenes).
+        if (HUDController.Instance == null)
+        {
+            var hudGO = new GameObject("HUDController");
+            DontDestroyOnLoad(hudGO);
+            hudGO.AddComponent<HUDController>();
+        }
+
+        var combat = player.AddComponent<PlayerCombat>();
+        // NPCs live on the Default layer; include it plus any future NPC-specific layers.
+        combat.enemyLayer = LayerMask.GetMask("Default");
+
         player.AddComponent<PlayerRanged>();
         player.AddComponent<PlayerThrown>();
+
+        var viewmodel = player.AddComponent<PlayerViewmodel>();
+        viewmodel.vmLayer = LayerMask.NameToLayer("WeaponVM");
         player.AddComponent<Spellcaster>();
         player.AddComponent<PlayerMagic>();
         player.AddComponent<PlayerDetection>();

@@ -70,6 +70,11 @@ public static class ItemTooltip
                 break;
         }
 
+        // Elemental riders (bonus typed damage on weapons).
+        if (item.onHitEffects != null)
+            foreach (var e in item.onHitEffects)
+                if (e.damage > 0f) lines.Add($"+{e.damage:0.#} {e.type} damage");
+
         // Equip stat modifiers (any item type can carry them).
         if (item.statModifiers != null)
             foreach (var mod in item.statModifiers)

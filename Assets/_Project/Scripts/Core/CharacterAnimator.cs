@@ -11,13 +11,19 @@ using UnityEngine;
 //   Cast   (Trigger) — play spell cast animation
 //   Hit    (Trigger) — play hit-reaction animation
 //   Dead   (Bool)    — true = play death animation (latching, never resets)
+// Which clip set drives a character's locomotion + attack. Order must match the
+// Stance int thresholds in the generated controller (CharacterAnimatorBuilder).
+public enum WeaponStance { NoWeapon = 0, OneHanded = 1, TwoHanded = 2, Archer = 3 }
+
 [DisallowMultipleComponent]
 public class CharacterAnimator : MonoBehaviour
 {
-    static readonly int SpeedHash = Animator.StringToHash("Speed");
-    static readonly int CastHash  = Animator.StringToHash("Cast");
-    static readonly int HitHash   = Animator.StringToHash("Hit");
-    static readonly int DeadHash  = Animator.StringToHash("Dead");
+    static readonly int SpeedHash  = Animator.StringToHash("Speed");
+    static readonly int StanceHash = Animator.StringToHash("Stance");
+    static readonly int AttackHash = Animator.StringToHash("Attack");
+    static readonly int CastHash   = Animator.StringToHash("Cast");
+    static readonly int HitHash    = Animator.StringToHash("Hit");
+    static readonly int DeadHash   = Animator.StringToHash("Dead");
 
     Animator _anim;
 
@@ -46,6 +52,29 @@ public class CharacterAnimator : MonoBehaviour
     {
         if (_anim == null) return;
         _anim.SetFloat(SpeedHash, speed);
+    }
+
+    // Selects the locomotion/attack clip set based on the held weapon.
+    public void SetStance(WeaponStance stance)
+    {
+        if (_anim == null) return;
+        _anim.SetFloat(StanceHash, (int)stance); // blend trees require float; values still 0/1/2/3
+    }
+
+    // Maps an equipped weapon to its animation stance.
+    public static WeaponStance StanceFor(LootItem weapon)
+    {
+        if (weapon == null || weapon.itemType != LootItemType.Weapon) return WeaponStance.NoWeapon;
+        if (weapon.weaponCategory == WeaponCategory.Ranged
+            && weapon.requiredProjectile == ProjectileType.Arrow) return WeaponStance.Archer;
+        return weapon.isTwoHanded ? WeaponStance.TwoHanded : WeaponStance.OneHanded;
+    }
+
+    // Play the attack/swing animation.
+    public void TriggerAttack()
+    {
+        if (_anim == null) return;
+        _anim.SetTrigger(AttackHash);
     }
 
     // Call when this character successfully casts a spell.

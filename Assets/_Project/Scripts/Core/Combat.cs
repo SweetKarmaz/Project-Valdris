@@ -13,6 +13,7 @@ public static class Combat
         if (dmg == null) return;
 
         dmg.TakeDamage(primary);
+        AccrueCorruption(primary);
 
         if (riders == null) return;
         CharacterBuffs buffs = null;
@@ -21,7 +22,11 @@ public static class Combat
             if (r == null) continue;
 
             if (r.damage > 0f)
-                dmg.TakeDamage(new DamageInfo(r.damage, r.type, primary.source, primary.isCrit));
+            {
+                var rd = new DamageInfo(r.damage, r.type, primary.source, primary.isCrit);
+                dmg.TakeDamage(rd);
+                AccrueCorruption(rd);
+            }
 
             if (r.debuff != null && Random.value <= r.procChance)
             {
@@ -29,6 +34,15 @@ public static class Combat
                 buffs?.TryApplyStatus(r.debuff);   // immunity + resist handled inside
             }
         }
+    }
+
+    // When the PLAYER deals Corruption damage, it taints them — fill their meter
+    // proportionally to the corruption damage dealt.
+    static void AccrueCorruption(DamageInfo info)
+    {
+        if (info.type != DamageType.Corruption || info.amount <= 0f) return;
+        if (info.source == null || !info.source.CompareTag("Player")) return;
+        CorruptionTracker.Instance?.AddFromDamageDealt(info.amount);
     }
 
     // Convenience for physical melee/projectile hits with optional riders.

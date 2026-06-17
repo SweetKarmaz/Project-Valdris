@@ -14,7 +14,20 @@ public class LootRegistry : ScriptableObject
     [SerializeField]
     private List<LootItem> _items = new();
 
+    // Folder-classified bases for randomized loot generation. Populated by
+    // LootRegistryBuilder at editor time (the only place the asset path is known).
+    [System.Serializable]
+    public struct GenBase
+    {
+        public LootItem    item;
+        public GenCategory category;
+    }
+
+    [SerializeField]
+    private List<GenBase> _genBases = new();
+
     public IReadOnlyList<LootItem> Items => _items;
+    public IReadOnlyList<GenBase>  GenBases => _genBases;
 
     // ── Lookups ───────────────────────────────────────────────────────────────
 
@@ -75,13 +88,14 @@ public class LootRegistry : ScriptableObject
         found.Sort((a, b) =>
             string.Compare(a.ItemName, b.ItemName, System.StringComparison.OrdinalIgnoreCase));
 
-        EditorSetItems(found);
+        EditorSetItems(found, new List<GenBase>());
     }
 
-    // Called by LootRegistryBuilder — sets the list and marks the asset dirty.
-    public void EditorSetItems(List<LootItem> items)
+    // Called by LootRegistryBuilder — sets the lists and marks the asset dirty.
+    public void EditorSetItems(List<LootItem> items, List<GenBase> genBases)
     {
-        _items = new List<LootItem>(items);
+        _items    = new List<LootItem>(items);
+        _genBases = genBases != null ? new List<GenBase>(genBases) : new List<GenBase>();
         UnityEditor.EditorUtility.SetDirty(this);
     }
 #endif

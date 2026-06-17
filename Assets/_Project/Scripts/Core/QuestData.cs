@@ -29,6 +29,9 @@ public class QuestData : ScriptableObject
     public int goldReward;
     public int xpReward;
     public int statPointReward;
+    [Tooltip("Corruption applied on turn-in. Positive taints the player (dark deeds); " +
+             "negative cleanses (redemption quests).")]
+    public float corruptionReward;
     [Tooltip("LootItem prefabs (from Assets/_Project/Prefabs/Loot/) granted on turn-in.")]
     public List<LootItem> itemRewards = new();
     public List<SpellData> spellRewards = new();

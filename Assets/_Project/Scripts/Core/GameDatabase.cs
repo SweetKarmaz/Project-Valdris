@@ -24,6 +24,11 @@ public class GameDatabase : ScriptableObject
              "(e.g. a quest reward) can't fit in a full inventory. Point at a LootContainers/ bag.")]
     public LootContainer droppedBagPrefab;
 
+    [Tooltip("Optional override for the randomized-loot drop tables (one row per source rarity). " +
+             "Leave empty to use the built-in defaults in LootDropTable. A row is used only if its " +
+             "goldMultiplier > 0.")]
+    public System.Collections.Generic.List<RarityTier> lootTiers = new();
+
     public SkillData FindSkill(string assetName) => Find(skills, assetName);
     public BuffData  FindBuff(string assetName)  => Find(buffs,  assetName);
     public QuestData FindQuest(string assetName) => Find(quests, assetName);

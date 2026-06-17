@@ -13,7 +13,9 @@ public class ProjectileBehaviour : MonoBehaviour
 {
     // ── Runtime state ─────────────────────────────────────────────────────────
 
-    LootItem  _data;
+    LootItem   _data;
+    LootItem   _weapon;   // firing weapon (bow): its damage + riders add to the hit
+    GameObject _source;   // shooter, for damage attribution
     float     _attackerDamage;
     float     _distanceTravelled;
     Vector3   _lastPos;
@@ -29,11 +31,14 @@ public class ProjectileBehaviour : MonoBehaviour
     // Called by PlayerRanged (or NpcRanged) right after Instantiate().
     // attackerDamage: the attacker's base AttackDamage stat, added on top of
     // the projectile's own projectileDamage.
-    public void Launch(Vector3 direction, float attackerDamage, LootItem projectileData)
+    public void Launch(Vector3 direction, float attackerDamage, LootItem projectileData,
+                       LootItem weapon = null, GameObject source = null)
     {
         if (_launched) return;
 
         _data          = projectileData;
+        _weapon        = weapon;
+        _source        = source;
         _attackerDamage = attackerDamage;
         _lastPos       = transform.position;
         _launched      = true;
@@ -74,25 +79,32 @@ public class ProjectileBehaviour : MonoBehaviour
     {
         if (!_launched || _stopped)      return;
         if (_hit.Contains(other))        return;
-        if (other.CompareTag("Player"))  return;  // never hit the shooter
         if (other.isTrigger)             return;  // ignore trigger volumes (zones, etc.)
+
+        // Never hit the shooter (player or NPC). Fall back to the Player tag when
+        // no source was supplied (legacy callers).
+        if (_source != null)
+        {
+            if (other.transform == _source.transform || other.transform.IsChildOf(_source.transform)) return;
+        }
+        else if (other.CompareTag("Player")) return;
 
         // ── Damage target ────────────────────────────────────────────────────
 
-        bool hitCharacter = false;
+        bool hitCharacter = other.GetComponentInParent<IDamageable>() != null;
+        if (hitCharacter)
+        {
+            // Physical = arrow base (+bonus) + the firing weapon's damage. Riders =
+            // the arrow's elemental tips plus any the bow itself carries.
+            float physical = _data.projectileDamage + _data.projectileDamageBonus
+                             + _attackerDamage + (_weapon != null ? _weapon.weaponDamage : 0f);
 
-        // Try NpcController first (covers all living NPCs).
-        if (other.TryGetComponent<NpcController>(out var npc))
-        {
-            npc.TakeDamage(TotalDamage());
+            var riders = new List<OnHitEffect>();
+            if (_data.onHitEffects != null)   riders.AddRange(_data.onHitEffects);
+            if (_weapon != null && _weapon.onHitEffects != null) riders.AddRange(_weapon.onHitEffects);
+
+            Combat.ApplyHit(other.gameObject, _source, physical, riders);
             ApplyOnHitModifiers(other.gameObject);
-            hitCharacter = true;
-        }
-        // Fallback: EnemyBase for any non-NPC enemies.
-        else if (other.TryGetComponent<EnemyBase>(out var enemy))
-        {
-            enemy.TakeDamage(TotalDamage());
-            hitCharacter = true;
         }
 
         _hit.Add(other);
@@ -109,9 +121,6 @@ public class ProjectileBehaviour : MonoBehaviour
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
-    float TotalDamage() =>
-        (_data.projectileDamage + _data.projectileDamageBonus + _attackerDamage);
 
     void ApplyOnHitModifiers(GameObject target)
     {

@@ -35,10 +35,16 @@ public static class HeldItemVisual
             bs.z != 0f ? 1f / bs.z : 1f);
 
         var vis = Object.Instantiate(item.gameObject, mount);
+        // The source may be inactive (generated items live under an inactive holder);
+        // the held copy must be visible.
+        vis.SetActive(true);
         vis.name = $"_Held_{slot}";
         foreach (var c in vis.GetComponentsInChildren<MonoBehaviour>(true)) Object.Destroy(c);
         foreach (var c in vis.GetComponentsInChildren<Collider>(true))      Object.Destroy(c);
         foreach (var c in vis.GetComponentsInChildren<Rigidbody>(true))     Object.Destroy(c);
+        // Strip any lights so a held model never registers/destroys HDRP lights
+        // as it's attached/detached.
+        foreach (var l in vis.GetComponentsInChildren<Light>(true))         Object.Destroy(l);
 
         ApplyGrip(vis.transform, item, slot);
 

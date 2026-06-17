@@ -29,7 +29,8 @@ public static class LootRegistryBuilder
     // Called by LootRegistry.EditorRebuild() (context menu on the asset).
     public static void Rebuild(LootRegistry registry)
     {
-        var found  = new List<LootItem>();
+        var found    = new List<LootItem>();
+        var genBases = new List<LootRegistry.GenBase>();
         string[]  guids  = AssetDatabase.FindAssets("t:Prefab", new[] { LootFolder });
 
         foreach (string guid in guids)
@@ -39,15 +40,22 @@ public static class LootRegistryBuilder
             if (prefab == null) continue;
 
             var loot = prefab.GetComponent<LootItem>();
-            if (loot != null) found.Add(loot);
+            if (loot == null) continue;
+            found.Add(loot);
+
+            // Classify by folder for the randomized-loot generator.
+            var category = LootClassifier.ClassifyByPath(path, prefab.name);
+            if (category != GenCategory.None)
+                genBases.Add(new LootRegistry.GenBase { item = loot, category = category });
         }
 
         // Sort alphabetically so the list is stable across rebuilds.
         found.Sort((a, b) =>
             string.Compare(a.ItemName, b.ItemName, System.StringComparison.OrdinalIgnoreCase));
 
-        registry.EditorSetItems(found);
+        registry.EditorSetItems(found, genBases);
         AssetDatabase.SaveAssets();
+        Debug.Log($"[LootRegistry] Rebuilt — {found.Count} items, {genBases.Count} generatable bases.");
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────

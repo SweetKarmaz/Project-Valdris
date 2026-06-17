@@ -92,6 +92,11 @@ MonoBehaviour:
   attackSpeedModifier: 0
   requiredProjectile: 0
   reloadTime: 1
+  isTwoHanded: 0
+  gripPositionOffset: {x: 0, y: 0, z: 0}
+  gripRotationOffset: {x: 0, y: 0, z: 0}
+  gripScale: {x: 1, y: 1, z: 1}
+  gripAtCenter: 0
   spread: 2
   projectileType: 1
   projectileDamage: 10
@@ -102,8 +107,12 @@ MonoBehaviour:
   projectilePiercing: 0
   embedOnHit: 1
   despawnDelay: 8
+  throwCooldown: 0.8
   onHitModifiers: []
+  equipSlot: 10
   armorValue: 0
+  meshOverrides: []
+  onHitEffects: []
   statModifiers: []
   restoresHealth: 0
   healthAmount: 0

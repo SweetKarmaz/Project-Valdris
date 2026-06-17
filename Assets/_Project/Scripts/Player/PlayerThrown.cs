@@ -75,6 +75,9 @@ public class PlayerThrown : MonoBehaviour
             return;
         }
 
+        // Play the throw animation on the viewmodel (weapon snaps forward then disappears).
+        PlayerViewmodel.Instance?.TriggerAttack();
+
         Vector3 direction = ComputeAimDirection();
 
         if (thrown.spread > 0f)

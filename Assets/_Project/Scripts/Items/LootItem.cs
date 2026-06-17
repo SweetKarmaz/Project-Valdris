@@ -189,6 +189,13 @@ public class LootItem : MonoBehaviour
 
     // ── Runtime properties ────────────────────────────────────────────────────
 
+    // Set on runtime-generated (randomized) clones built by LootItemFactory.
+    // Null on plain prefab assets. When present, the inventory/save system stores
+    // this roll instead of the item name so the unique item survives save/load.
+    [System.NonSerialized] public ItemRoll runtimeRoll;
+
+    public bool IsGenerated => runtimeRoll != null;
+
     // The canonical display name: override → prefab asset name.
     public string ItemName =>
         string.IsNullOrWhiteSpace(displayNameOverride) ? gameObject.name : displayNameOverride;
