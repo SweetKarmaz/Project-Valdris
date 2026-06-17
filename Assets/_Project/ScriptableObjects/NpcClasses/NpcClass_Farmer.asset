@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36204f9d82dd49742a0339efefd1ad39, type: 3}
+  m_Name: NpcClass_Farmer
+  m_EditorClassIdentifier: Assembly-CSharp::NpcAppearanceClass
+  className: Farmer
+  description: Rural worker. Practical work clothes.
+  gender: 0
+  race: 1
+  headCoveringStyle: 1
+  facialHair: 1
+  torso:
+    min: 1
+    max: 5
+  armUpper:
+    min: 0
+    max: 3
+  armLower:
+    min: 0
+    max: 3
+  hands:
+    min: 0
+    max: 2
+  hips:
+    min: 1
+    max: 5
+  legs:
+    min: 0
+    max: 4
+  shoulderAttach:
+    min: 0
+    max: 0
+  shoulderMismatchChance: 15
+  elbowAttach:
+    min: 0
+    max: -1
+  elbowMismatchChance: 10
+  kneeAttach:
+    min: 0
+    max: -1
+  kneeMismatchChance: 10
+  allowChestAttachment: 0
+  chestAttach:
+    min: 0
+    max: -1
+  allowBackAttachment: 0
+  backAttach:
+    min: 0
+    max: -1
+  allowHipsAttachment: 1
+  hipsAttach:
+    min: 0
+    max: 3
+  textureSet: -1
+  colourVariant: 0
+  allowedMaterials: []

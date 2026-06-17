@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd82a263fad24a74dbe8d8e00136d757, type: 3}
+  m_Name: Cultist
+  m_EditorClassIdentifier: Assembly-CSharp::NpcDefinition
+  displayName: Cultist
+  title: 
+  faction: 5
+  isEssential: 0
+  portrait: {fileID: 0}
+  level: 4
+  maxHealth: 60
+  maxMana: 80
+  baseArmor: 0
+  xpReward: 25
+  behaviorType: 1
+  walkSpeed: 1.8
+  runSpeed: 4
+  allowedZones: []
+  idleSecondsMin: 2
+  idleSecondsMax: 8
+  isAggressive: 1
+  aggroRange: 10
+  attackRange: 8
+  attackDamage: 20
+  attackCooldown: 2
+  fleeHealthThreshold: 0
+  attackPriority: 0200000000000000
+  witnessedKillReaction: 2
+  reactToFaction: 5
+  fleeDuration: 60
+  knownSpells: []
+  manaRegenRate: 2
+  items: []
+  goldMin: 0
+  goldMax: 15
+  isLootable: 1
+  canTalk: 0
+  greetingLine: 
+  talkRange: 3

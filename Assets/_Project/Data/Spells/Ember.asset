@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14ecdd4755ef12c49a7d6f589682544e, type: 3}
+  m_Name: Ember
+  m_EditorClassIdentifier: Assembly-CSharp::SpellData
+  spellName: Ember
+  icon: {fileID: 0}
+  description: Hurls a small bolt of fire that scorches whatever it touches.
+  spellType: 0
+  manaCost: 0
+  cooldown: 0
+  castTime: 0
+  damage: 10
+  duration: 0
+  range: 40
+  statusBuff: {fileID: 0}
+  durationPerIntelligence: 0
+  corruptionGain: 0
+  projectilePrefab: {fileID: 4986319996304798050, guid: f755c1e0fd6ff1e4f8140ead0679dc52, type: 3}
+  castVFXPrefab: {fileID: 0}

@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36204f9d82dd49742a0339efefd1ad39, type: 3}
+  m_Name: NpcClass_Archer
+  m_EditorClassIdentifier: Assembly-CSharp::NpcAppearanceClass
+  className: Archer
+  description: Ranged fighter. Light leather armour, unencumbered.
+  gender: 0
+  race: 1
+  headCoveringStyle: 1
+  facialHair: 1
+  torso:
+    min: 6
+    max: 12
+  armUpper:
+    min: 4
+    max: 8
+  armLower:
+    min: 4
+    max: 8
+  hands:
+    min: 3
+    max: 6
+  hips:
+    min: 5
+    max: 9
+  legs:
+    min: 5
+    max: 9
+  shoulderAttach:
+    min: 0
+    max: 4
+  shoulderMismatchChance: 15
+  elbowAttach:
+    min: 0
+    max: 3
+  elbowMismatchChance: 10
+  kneeAttach:
+    min: 0
+    max: -1
+  kneeMismatchChance: 10
+  allowChestAttachment: 1
+  chestAttach:
+    min: 0
+    max: 5
+  allowBackAttachment: 1
+  backAttach:
+    min: 0
+    max: 5
+  allowHipsAttachment: 0
+  hipsAttach:
+    min: 0
+    max: -1
+  textureSet: -1
+  colourVariant: 0
+  allowedMaterials: []

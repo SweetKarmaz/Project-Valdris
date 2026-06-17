@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6492344c8a64e0eb95de3cf35450dd6, type: 3}
+  m_Name: Buff_BlessingOfStrength
+  m_EditorClassIdentifier: 
+  buffName: Blessing of Strength
+  icon: {fileID: 0}
+  description: Increases strength by 1 for one hour.
+  isDebuff: 0
+  modifiers:
+  - stat: 6
+    amount: 1
+  durationType: 0
+  durationSeconds: 3600
+  linkedQuest: {fileID: 0}
+  areaId: 
+  persistentVFXPrefab: {fileID: 0}

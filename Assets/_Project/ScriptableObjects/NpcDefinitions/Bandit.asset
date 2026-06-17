@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd82a263fad24a74dbe8d8e00136d757, type: 3}
+  m_Name: Bandit
+  m_EditorClassIdentifier: Assembly-CSharp::NpcDefinition
+  displayName: Bandit
+  title: 
+  faction: 3
+  isEssential: 0
+  portrait: {fileID: 0}
+  level: 3
+  maxHealth: 70
+  maxMana: 0
+  baseArmor: 0
+  xpReward: 20
+  behaviorType: 1
+  walkSpeed: 2
+  runSpeed: 5
+  allowedZones: []
+  idleSecondsMin: 2
+  idleSecondsMax: 8
+  isAggressive: 1
+  aggroRange: 12
+  attackRange: 2
+  attackDamage: 15
+  attackCooldown: 1.3
+  fleeHealthThreshold: 0
+  attackPriority: 0000000001000000
+  witnessedKillReaction: 2
+  reactToFaction: 6
+  fleeDuration: 60
+  knownSpells: []
+  manaRegenRate: 1
+  items: []
+  goldMin: 5
+  goldMax: 30
+  isLootable: 1
+  canTalk: 0
+  greetingLine: 
+  talkRange: 3

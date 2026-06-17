@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd82a263fad24a74dbe8d8e00136d757, type: 3}
+  m_Name: Boss
+  m_EditorClassIdentifier: Assembly-CSharp::NpcDefinition
+  displayName: Boss
+  title: 
+  faction: 0
+  isEssential: 1
+  portrait: {fileID: 0}
+  level: 15
+  maxHealth: 500
+  maxMana: 200
+  baseArmor: 15
+  xpReward: 200
+  behaviorType: 0
+  walkSpeed: 3
+  runSpeed: 6
+  allowedZones: []
+  idleSecondsMin: 2
+  idleSecondsMax: 8
+  isAggressive: 1
+  aggroRange: 20
+  attackRange: 3
+  attackDamage: 60
+  attackCooldown: 0.8
+  fleeHealthThreshold: 0
+  attackPriority: 020000000000000001000000
+  witnessedKillReaction: 2
+  reactToFaction: 6
+  fleeDuration: 60
+  knownSpells: []
+  manaRegenRate: 5
+  items: []
+  goldMin: 100
+  goldMax: 300
+  isLootable: 1
+  canTalk: 0
+  greetingLine: 
+  talkRange: 3
