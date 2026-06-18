@@ -33,7 +33,25 @@ public class GameManager : MonoBehaviour
     public void StartNewGame()
     {
         SceneStateManager.DeleteAllSceneStates();
+        ResetRuntimeForNewGame();
         SceneManager.LoadScene(IntroScene);
+    }
+
+    // Wipes all persistent runtime state so a New Game started after a previous
+    // play session (or after death → Main Menu) behaves like a true fresh start:
+    // the dead/old player is destroyed and rebuilt, and inventory / spells /
+    // corruption are cleared. PlayerManager re-grants the starting kit on rebuild.
+    void ResetRuntimeForNewGame()
+    {
+        SaveSystem.IsRestoringFromSave   = false;
+        SaveSystem.PendingPlayerPosition = null;
+        SaveSystem.PendingPlayerRotation = null;
+
+        InventorySystem.Instance?.ClearAll();
+        SpellbookSystem.Instance?.ClearAll();
+        CorruptionTracker.Instance?.ResetCorruption();
+        HUDController.Instance?.Reset();
+        PlayerManager.Instance?.DestroyPlayer();
     }
 
     // Called by the intro cinematic when it finishes or is skipped.

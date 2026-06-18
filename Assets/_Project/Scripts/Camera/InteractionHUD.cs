@@ -47,6 +47,7 @@ public class InteractionHUD : MonoBehaviour
     Merchant         _merchantTarget;
     LootContainer    _containerTarget;
     InteractableProp _propTarget;
+    Gateway          _gatewayTarget;
 
     struct LabelEntry
     {
@@ -75,6 +76,7 @@ public class InteractionHUD : MonoBehaviour
         _merchantTarget  = null;
         _containerTarget = null;
         _propTarget      = null;
+        _gatewayTarget   = null;
         _labels.Clear();
         _context = ReticleContext.Default;
 
@@ -84,11 +86,12 @@ public class InteractionHUD : MonoBehaviour
 
         ResolveAimTarget();   // raycast under the crosshair → sets the active target
         ScanProps();          // discovery / active highlights
+        ScanGateways();       // interact-mode gateways (proximity)
         ScanNPCs();           // name tags only
 
-        // Resolve priority: prop > container > corpse loot > merchant > talk.
+        // Resolve priority: prop > container > corpse loot > merchant > gateway > talk.
         if (_propTarget != null || _containerTarget != null
-            || _corpseTarget != null || _merchantTarget != null)
+            || _corpseTarget != null || _merchantTarget != null || _gatewayTarget != null)
         {
             _context  = ReticleContext.Interact;
             HasTarget = true;
@@ -121,8 +124,29 @@ public class InteractionHUD : MonoBehaviour
                 _corpseTarget.OpenLoot();
             else if (_merchantTarget != null)
                 _merchantTarget.Open();
+            else if (_gatewayTarget != null)
+                _gatewayTarget.Activate();
             else if (_talkTarget != null)
                 HandleTalkInteract(_talkTarget);
+        }
+    }
+
+    // Interact-mode gateways use simple proximity targeting (closest in range),
+    // mirroring how props are handled.
+    void ScanGateways()
+    {
+        Vector3 camPos     = _cam.transform.position;
+        float   closest    = float.MaxValue;
+
+        foreach (var gw in Gateway.All)
+        {
+            if (gw == null || gw.trigger != GatewayTrigger.Interact) continue;
+            float dist = Vector3.Distance(camPos, gw.transform.position);
+            if (dist <= gw.interactionRange && dist < closest)
+            {
+                closest        = dist;
+                _gatewayTarget = gw;
+            }
         }
     }
 
@@ -306,6 +330,7 @@ public class InteractionHUD : MonoBehaviour
                 : _containerTarget != null ? _containerTarget.Label
                 : _corpseTarget != null ? "Loot"
                 : _merchantTarget != null ? "Trade"
+                : _gatewayTarget != null ? _gatewayTarget.Label
                 : "Interact";
 
             var style = new GUIStyle(GUI.skin.label)

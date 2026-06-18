@@ -54,6 +54,10 @@ public class SceneGameManager : MonoBehaviour
 
         PlayerManager.Instance.InitializeForScene(this);
         OnSceneReady();
+
+        // Tell any in-flight Gateway transition the scene is built so its loading
+        // overlay can come down.
+        SceneTransition.NotifySceneReady();
     }
 
     // Override in subclasses to spawn NPCs, configure scene state, etc.

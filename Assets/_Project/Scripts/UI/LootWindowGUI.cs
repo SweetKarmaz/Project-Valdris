@@ -17,7 +17,17 @@ public static class LootWindowGUI
         float px = (Screen.width  - PW) * 0.5f;
         float py = (Screen.height - PH) * 0.5f;
 
-        GUI.Box(new Rect(px, py, PW, PH), "");
+        var panel = new Rect(px, py, PW, PH);
+        // Solid opaque background so the game world never shows through.
+        GUI.color = new Color(0.04f, 0.04f, 0.05f, 1f);
+        GUI.DrawTexture(panel, Texture2D.whiteTexture);
+        GUI.color = new Color(1f, 1f, 1f, 0.18f);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 1f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panel.x, panel.y + panel.height - 1f, panel.width, 1f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, 1f, panel.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panel.x + panel.width - 1f, panel.y, 1f, panel.height), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        GUI.Box(panel, "");
         GUI.Label(new Rect(px + 10f, py + 8f, PW - 50f, 28f),
             string.IsNullOrEmpty(title) ? "Loot" : title, Centered(17, FontStyle.Bold));
         if (GUI.Button(new Rect(px + PW - 36f, py + 6f, 28f, 26f), "X"))

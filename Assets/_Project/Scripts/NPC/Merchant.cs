@@ -193,7 +193,17 @@ public class Merchant : MonoBehaviour
         float py = (Screen.height - PH) * 0.5f;
         var inv = InventorySystem.Instance;
 
-        GUI.Box(new Rect(px, py, PW, PH), "");
+        var panel = new Rect(px, py, PW, PH);
+        // Solid opaque background so the game world never shows through.
+        GUI.color = new Color(0.04f, 0.04f, 0.05f, 1f);
+        GUI.DrawTexture(panel, Texture2D.whiteTexture);
+        GUI.color = new Color(1f, 1f, 1f, 0.18f);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 1f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panel.x, panel.y + panel.height - 1f, panel.width, 1f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, 1f, panel.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panel.x + panel.width - 1f, panel.y, 1f, panel.height), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        GUI.Box(panel, "");
 
         var titleStyle = new GUIStyle(GUI.skin.label)
             { alignment = TextAnchor.MiddleCenter, fontSize = 17, fontStyle = FontStyle.Bold };

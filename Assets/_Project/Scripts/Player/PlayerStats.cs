@@ -81,7 +81,20 @@ public class PlayerStats : MonoBehaviour, IDamageable
         baseMaxMana + Intelligence * manaPerIntelligence + Wisdom * manaPerWisdom));
 
     public float AttackDamage => Mathf.Max(0f, Derived(StatType.AttackDamage,
-        baseAttackDamage + Strength * damagePerStrength));
+        baseAttackDamage + Strength * damagePerStrength + EquippedWeaponDamage));
+
+    // Damage contributed by the currently equipped main-hand weapon (0 when unarmed
+    // or when a ranged weapon is held — bows/thrown carry their damage on the projectile).
+    float EquippedWeaponDamage
+    {
+        get
+        {
+            var w = InventorySystem.Instance?.GetEquippedLoot(EquipSlot.MainHand);
+            if (w == null || w.itemType != LootItemType.Weapon) return 0f;
+            if (w.weaponCategory == WeaponCategory.Ranged)      return 0f;
+            return w.weaponDamage;
+        }
+    }
 
     public float AttackSpeed => Mathf.Max(0.1f, Derived(StatType.AttackSpeed,
         baseAttackSpeed + Dexterity * attackSpeedPerDexterity));
@@ -176,6 +189,25 @@ public class PlayerStats : MonoBehaviour, IDamageable
         // after this component on dynamically built player GameObjects.
         CurrentHealth = MaxHealth;
         CurrentMana   = MaxMana;
+    }
+
+    private void Start()
+    {
+        // Push initial values so the HUD bars show full on spawn (the HUD may not
+        // have existed yet during Awake).
+        HUDController.Instance?.UpdateHealth(CurrentHealth, MaxHealth);
+        HUDController.Instance?.UpdateMana(CurrentMana, MaxMana);
+    }
+
+    // Restores the player to full health/mana (used on load — vitals aren't saved —
+    // and to clear a death state). Refreshes the HUD bars.
+    public void ReviveFull()
+    {
+        CurrentHealth = MaxHealth;
+        CurrentMana   = MaxMana;
+        CharAnim?.Revive();
+        HUDController.Instance?.UpdateHealth(CurrentHealth, MaxHealth);
+        HUDController.Instance?.UpdateMana(CurrentMana, MaxMana);
     }
 
     private void OnEnable()

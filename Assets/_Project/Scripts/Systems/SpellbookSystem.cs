@@ -50,6 +50,13 @@ public class SpellbookSystem : MonoBehaviour
         return saved;
     }
 
+    // Wipes all known spells and slots for a fresh New Game.
+    public void ClearAll()
+    {
+        _knownSpells.Clear();
+        System.Array.Clear(_slots, 0, SlotCount);
+    }
+
     public void RestoreState(List<string> known, List<string> slots, GameDatabase database)
     {
         _knownSpells.Clear();

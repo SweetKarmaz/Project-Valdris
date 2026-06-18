@@ -17,9 +17,12 @@ public class HUDController : MonoBehaviour
 
     // ── Bar layout ────────────────────────────────────────────────────────────
 
-    const float BarW      = 260f;
-    const float BarH      = 18f;
-    const float BarPad    = 6f;   // gap between health and mana bar
+    // Health bar is double the old size; mana bar is 1.5×. Both anchored top-left.
+    const float HpBarW    = 520f;
+    const float HpBarH    = 36f;
+    const float MpBarW    = 390f;
+    const float MpBarH    = 27f;
+    const float BarPad    = 8f;   // vertical gap between bars
     const float BarMargin = 24f;  // distance from screen edge
 
     // ── Cached values (pushed by PlayerStats) ────────────────────────────────
@@ -42,6 +45,13 @@ public class HUDController : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
+
+    void OnEnable()  => SceneManager.sceneLoaded += OnSceneLoaded;
+    void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
+
+    // Any scene load (Load Game or Main Menu) clears the death state so the
+    // "YOU ARE DEAD" overlay never lingers into the next scene.
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode) => Reset();
 
     // ── API called by PlayerStats ─────────────────────────────────────────────
 
@@ -83,9 +93,20 @@ public class HUDController : MonoBehaviour
     {
         if (_dead)          { DrawDeathScreen(); return; }
         if (GameUI.IsOpen)  return;  // inventory / character tabs cover the screen
+        if (!IsGameplayScene) return; // no HUD in the main menu / intro
 
         DrawPlayerBars();
         DrawNpcBars();
+    }
+
+    // True only in actual gameplay scenes — hides the HUD in the main menu and intro.
+    static bool IsGameplayScene
+    {
+        get
+        {
+            string s = SceneManager.GetActiveScene().name;
+            return s != GameManager.MainMenuScene && s != GameManager.IntroScene;
+        }
     }
 
     // ── Player health / mana bars ─────────────────────────────────────────────
@@ -93,16 +114,16 @@ public class HUDController : MonoBehaviour
     void DrawPlayerBars()
     {
         float sx = BarMargin;
-        // Stack from bottom: mana bar above health bar.
-        float hpY = Screen.height - BarMargin - BarH;
-        float mpY = hpY - BarPad - BarH;
+        // Stack from the top: health on top, mana below, corruption below that.
+        float hpY = BarMargin;
+        float mpY = hpY + HpBarH + BarPad;
 
-        DrawBar(sx, hpY, BarW, BarH, _hp / _hpMax, new Color(0.80f, 0.12f, 0.12f, 0.92f), "HP");
-        DrawBar(sx, mpY, BarW, BarH, _mp / _mpMax, new Color(0.15f, 0.35f, 0.85f, 0.92f), "MP");
+        DrawBar(sx, hpY, HpBarW, HpBarH, _hp / _hpMax, new Color(0.80f, 0.12f, 0.12f, 0.92f), "HP");
+        DrawBar(sx, mpY, MpBarW, MpBarH, _mp / _mpMax, new Color(0.15f, 0.35f, 0.85f, 0.92f), "MP");
         if (_corruption > 0f)
         {
-            float corY = mpY - BarPad - BarH;
-            DrawBar(sx, corY, BarW, BarH, _corruption, new Color(0.45f, 0.10f, 0.65f, 0.92f), "Corruption");
+            float corY = mpY + MpBarH + BarPad;
+            DrawBar(sx, corY, MpBarW, MpBarH, _corruption, new Color(0.45f, 0.10f, 0.65f, 0.92f), "Corruption");
         }
     }
 
@@ -125,11 +146,11 @@ public class HUDController : MonoBehaviour
 
         GUI.color = Color.white;
 
-        // Percentage label centred in the bar.
+        // Percentage label centred in the bar (font scales with bar height).
         var style = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize  = 11,
+            fontSize  = Mathf.Clamp(Mathf.RoundToInt(h * 0.55f), 10, 22),
             fontStyle = FontStyle.Bold,
         };
         style.normal.textColor = Color.white;
@@ -180,26 +201,27 @@ public class HUDController : MonoBehaviour
 
     void DrawDeathScreen()
     {
-        // Full-screen dark overlay.
-        GUI.color = new Color(0f, 0f, 0f, 0.72f);
+        // Full-screen solid black overlay (hides the game world entirely).
+        GUI.color = Color.black;
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
         GUI.color = Color.white;
 
         float cx = Screen.width  * 0.5f;
         float cy = Screen.height * 0.5f;
 
-        // "YOU ARE DEAD"
-        var titleStyle = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize  = 52,
-            fontStyle = FontStyle.Bold,
-        };
-        titleStyle.normal.textColor = new Color(0.85f, 0.08f, 0.08f, 1f);
-        GUI.Label(new Rect(cx - 300f, cy - 120f, 600f, 80f), "YOU ARE DEAD", titleStyle);
-
         if (!_showLoadList)
         {
+            // "YOU ARE DEAD" — non-interactable; force the red color in every
+            // style state so it never tints on mouse-over.
+            var titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize  = 52,
+                fontStyle = FontStyle.Bold,
+            };
+            SetAllTextColors(titleStyle, new Color(0.85f, 0.08f, 0.08f, 1f));
+            GUI.Label(new Rect(cx - 300f, cy - 120f, 600f, 80f), "YOU ARE DEAD", titleStyle);
+
             DrawDeathButtons(cx, cy);
         }
         else
@@ -238,6 +260,13 @@ public class HUDController : MonoBehaviour
         var lblStyle  = new GUIStyle(GUI.skin.label)   { fontSize = 14 };
         var titleStyle = new GUIStyle(GUI.skin.label)  { fontSize = 20, fontStyle = FontStyle.Bold };
         titleStyle.normal.textColor = Color.white;
+
+        // Solid panel behind the list so nothing shows through.
+        Rect panel = new Rect(cx - 230f, cy - 175f, 460f, 360f);
+        FillSolid(panel, new Color(0.04f, 0.04f, 0.04f, 1f));
+        GUI.color = new Color(1f, 1f, 1f, 0.25f);
+        DrawBorderStatic(panel, 1f);
+        GUI.color = Color.white;
 
         GUI.Label(new Rect(cx - 200f, cy - 160f, 400f, 30f), "Choose a Save", titleStyle);
 
@@ -291,7 +320,29 @@ public class HUDController : MonoBehaviour
             _showLoadList = false;
     }
 
-    // ── Shared border helper (static so DrawBar can call it) ──────────────────
+    // ── Shared helpers ────────────────────────────────────────────────────────
+
+    // Fills a rect with an opaque color (restores GUI.color afterwards).
+    static void FillSolid(Rect r, Color c)
+    {
+        Color prev = GUI.color;
+        GUI.color = c;
+        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.color = prev;
+    }
+
+    // Forces a single text color across every interactive state so a Label
+    // never tints on hover / focus / active.
+    static void SetAllTextColors(GUIStyle s, Color c)
+    {
+        s.normal.textColor   = c;
+        s.hover.textColor    = c;
+        s.active.textColor   = c;
+        s.focused.textColor  = c;
+        s.onNormal.textColor = c;
+        s.onHover.textColor  = c;
+        s.onActive.textColor = c;
+    }
 
     static void DrawBorderStatic(Rect r, float t)
     {

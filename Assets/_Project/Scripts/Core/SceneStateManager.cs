@@ -31,8 +31,13 @@ public class SceneStateManager : MonoBehaviour
 
     // ── Paths ─────────────────────────────────────────────────────────────────
 
+    // The LIVE session world. SceneStateManager reads/writes here continuously as
+    // the player explores. Save snapshots this folder; Load replaces it with a
+    // save's snapshot; New Game wipes it. Exposed for SaveSystem.
     static string ScenesSaveDir =>
-        Path.Combine(Application.persistentDataPath, "Scenes");
+        Path.Combine(Application.persistentDataPath, "Session", "Scenes");
+
+    public static string SessionScenesDir => ScenesSaveDir;
 
     string ActiveSavePath =>
         Path.Combine(ScenesSaveDir, gameObject.scene.name + "_scene.json");

@@ -104,6 +104,15 @@ public class CharacterAnimator : MonoBehaviour
 
     public bool IsDead => _anim != null && _anim.GetBool(DeadHash);
 
+    // Clears the death state and returns to normal locomotion (used on load /
+    // revive — the saved game doesn't persist vitals, so the player comes back alive).
+    public void Revive()
+    {
+        if (_anim == null) return;
+        _anim.applyRootMotion = false;
+        _anim.SetBool(DeadHash, false);
+    }
+
     // Call after swapping the model child to re-cache the new Animator.
     public void Refresh()
     {

@@ -57,6 +57,9 @@ public class CorruptionTracker : MonoBehaviour
         SetCorruption(corruptionLevel - amount);
     }
 
+    // Clears the meter for a fresh New Game.
+    public void ResetCorruption() => SetCorruption(0f);
+
     void SetCorruption(float value)
     {
         corruptionLevel = Mathf.Clamp(value, 0f, corruptionMax);

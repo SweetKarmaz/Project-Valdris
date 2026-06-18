@@ -70,6 +70,14 @@ public class NpcController : MonoBehaviour, IDamageable
              "Tune per rig if the head faces the wrong way (Synty rigs often need e.g. (-90,0,0) or (0,90,0)).")]
     public Vector3 headForwardOffsetEuler = Vector3.zero;
 
+    [Header("Perception (vision cone)")]
+    [Tooltip("Half-angle of the vision cone in degrees. The player/event must be within this " +
+             "angle of the NPC's forward (and within aggro range) to be seen. 60 = 120° total FOV.")]
+    public float viewConeHalfAngle = 60f;
+    [Tooltip("Seconds the target may stay out of the vision cone before the NPC disengages, " +
+             "returns to where it started, and resumes its routine.")]
+    public float loseSightSeconds = 30f;
+
     // ── Overrides (default from Definition) ───────────────────────────────────
     // Each pair: an "override" toggle + the value used when the toggle is on.
     // NpcControllerEditor hides the value unless the toggle is enabled.
@@ -130,6 +138,11 @@ public class NpcController : MonoBehaviour, IDamageable
     CharacterAnimator _charAnim;
     float _idleUntil;
     bool _wasMovementPrevented;
+
+    // Perception / disengage state.
+    Vector3 _homePosition;
+    float   _lastSawTargetTime;
+    float   _fleeingUntil;
 
     // Attention: the talk/trade target looks at the player. Set each frame by
     // InteractionHUD via AttendTo(); expires shortly after to avoid flicker.
@@ -264,11 +277,11 @@ public class NpcController : MonoBehaviour, IDamageable
         // First-spawn auto-gear (RegisterNPC above already restored saved gear if any).
         EnsureInitialGear();
 
-        // Always-aggressive NPCs (guards, bandits) draw their weapon up front.
-        // Other triggers (being attacked, aggro, witnessed kills) call EnterCombat
-        // when their systems are in place; being attacked already does (TakeDamage).
-        if (!IsDead && definition != null && definition.isAggressive)
-            EnterCombat();
+        // Remember where this NPC started so it can return here after disengaging.
+        _homePosition = transform.position;
+
+        // Aggressive NPCs no longer draw on spawn — they aggro only when they
+        // actually see the player inside their vision cone (CheckHostilePerception).
     }
 
     void OnDestroy()
@@ -291,9 +304,13 @@ public class NpcController : MonoBehaviour, IDamageable
         }
 
         CheckCorruptionHostility();   // corruption-hostile NPCs attack on sight
+        CheckHostilePerception();     // aggressive NPCs attack when they SEE the player
 
         // Active combat overrides wandering: chase, face, and attack the target.
         if (_inCombat) { CombatUpdate(); return; }
+
+        // Fleeing (e.g. after witnessing an ally's death) overrides wandering.
+        if (Fleeing) { FleeUpdate(); return; }
 
         // Pause wandering while attending to the player (the look-at runs in LateUpdate).
         if (Attending)
@@ -400,6 +417,7 @@ public class NpcController : MonoBehaviour, IDamageable
             RollCorpseLoot();
             FireDeathFlags();
             ReportKillToQuestSystem();
+            NotifyWitnesses();
         }
         else
         {
@@ -412,7 +430,126 @@ public class NpcController : MonoBehaviour, IDamageable
 
     bool _corruptionNoticeShown;
 
-    float AggroRange => definition != null ? definition.aggroRange : 10f;
+    // Aggro / vision range. Fixed at 35 units for now (was definition-driven);
+    // archers also use this as their maximum arrow range.
+    float AggroRange => 35f;
+
+    // ── Vision cone ─────────────────────────────────────────────────────────────
+
+    // True when a world point lies within both the aggro range and the frontal
+    // vision cone. The cone is anchored to the NPC's facing, so it naturally
+    // sweeps as the body turns while wandering.
+    bool InViewCone(Vector3 worldPoint)
+    {
+        Vector3 to = worldPoint - transform.position; to.y = 0f;
+        float sq = to.sqrMagnitude;
+        if (sq > AggroRange * AggroRange) return false;
+        if (sq < 0.0001f) return true;
+        return Vector3.Angle(transform.forward, to) <= viewConeHalfAngle;
+    }
+
+    bool CanSeePlayer()
+    {
+        var player = PlayerManager.Instance?.Player;
+        return player != null && InViewCone(player.transform.position);
+    }
+
+    // Unobstructed line from the NPC's eye to the target (ignores triggers).
+    bool HasLineOfSightTo(Transform target)
+    {
+        if (target == null) return false;
+        Vector3 eye = transform.position + Vector3.up * 1.6f;
+        Vector3 aim = (target.position + Vector3.up * 1.2f) - eye;
+        float d = aim.magnitude;
+        if (d < 0.01f) return true;
+        if (Physics.Raycast(eye, aim / d, out var hit, d, ~0, QueryTriggerInteraction.Ignore))
+            return hit.transform == target || hit.transform.IsChildOf(target);
+        return true;   // nothing in the way
+    }
+
+    // Give up the current fight and walk back to the spawn/home spot. Normal
+    // wandering resumes automatically once _inCombat is cleared.
+    void Disengage()
+    {
+        ExitCombat();
+        if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
+        {
+            _agent.isStopped = false;
+            _agent.speed     = WalkSpeed;
+            _agent.SetDestination(_homePosition);
+            _idleUntil = float.MaxValue;   // OnArrived() fires when home is reached
+        }
+    }
+
+    // Aggressive NPCs draw and attack only once the player enters their cone.
+    void CheckHostilePerception()
+    {
+        if (_inCombat || IsDead) return;
+        if (definition == null || !definition.isAggressive) return;
+        if (CanSeePlayer()) EnterCombat();
+    }
+
+    // ── Witnessed kills ───────────────────────────────────────────────────────
+    // When this NPC dies, same-faction allies that can SEE the corpse spot (it
+    // falls inside their vision cone) react per their WitnessedKillReaction.
+    void NotifyWitnesses()
+    {
+        if (Faction == NpcFaction.None) return;   // factionless deaths go unnoticed
+        foreach (var other in All)
+        {
+            if (other == null || other == this) continue;
+            if (other.IsDead || other._inCombat)            continue;
+            if (other.Faction != Faction)                   continue;
+            if (other.WitnessedKillReaction == WitnessedKillReaction.None) continue;
+            if (!other.InViewCone(transform.position))       continue;
+            other.ReactToWitnessedKill();
+        }
+    }
+
+    void ReactToWitnessedKill()
+    {
+        switch (WitnessedKillReaction)
+        {
+            case WitnessedKillReaction.Attack: EnterCombat(); break;
+            case WitnessedKillReaction.Flee:   BeginFlee();   break;
+        }
+    }
+
+    // ── Flee ────────────────────────────────────────────────────────────────────
+
+    bool Fleeing => Time.time < _fleeingUntil && !IsDead;
+
+    void BeginFlee() => _fleeingUntil = Time.time + 8f;
+
+    void FleeUpdate()
+    {
+        var player = PlayerManager.Instance?.Player;
+        Vector3 away = player != null
+            ? (transform.position - player.transform.position)
+            : -transform.forward;
+        away.y = 0f;
+        if (away.sqrMagnitude < 0.0001f) away = -transform.forward;
+        away.Normalize();
+
+        Vector3 dest = transform.position + away * 6f;
+        if (NavMesh.SamplePosition(dest, out var hit, 6f, NavMesh.AllAreas))
+            dest = hit.position;
+
+        if (_agent.isOnNavMesh)
+        {
+            _agent.isStopped = false;
+            _agent.speed     = RunSpeed;
+            _agent.SetDestination(dest);
+        }
+
+        // Face the way we're running.
+        if (away.sqrMagnitude > 0.0001f)
+        {
+            Quaternion look = Quaternion.LookRotation(away, Vector3.up);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, bodyTurnSpeed * Time.deltaTime);
+        }
+        _charAnim.SetSpeed(Mathf.Clamp01(_agent.velocity.magnitude / RunSpeed));
+    }
 
     public CorruptionStance GetCorruptionStance()
     {
@@ -456,9 +593,7 @@ public class NpcController : MonoBehaviour, IDamageable
         if (_inCombat || !reactsToCorruption || IsDead) return;
         if (GetCorruptionStance() != CorruptionStance.Hostile) return;
 
-        var player = PlayerManager.Instance?.Player;
-        if (player == null) return;
-        if ((player.transform.position - transform.position).sqrMagnitude <= AggroRange * AggroRange)
+        if (CanSeePlayer())
         {
             Say(corruptionHostileLine);
             EnterCombat();
@@ -483,6 +618,7 @@ public class NpcController : MonoBehaviour, IDamageable
     {
         if (_inCombat || IsDead) return;
         _inCombat = true;
+        _lastSawTargetTime = Time.time;   // start the lose-sight timer fresh
         EquipBestWeapon();
     }
 
@@ -502,6 +638,7 @@ public class NpcController : MonoBehaviour, IDamageable
         _equippedWeapon = null;
         _combatTarget   = null;
         _swinging       = false;
+        _firing         = false;
         if (_weaponMount != null) { Destroy(_weaponMount); _weaponMount = null; }
         if (_shieldMount != null) { Destroy(_shieldMount); _shieldMount = null; }
         _charAnim?.SetStance(WeaponStance.NoWeapon);
@@ -535,7 +672,13 @@ public class NpcController : MonoBehaviour, IDamageable
 
         Vector3 to = _combatTarget.position - transform.position; to.y = 0f;
         float dist = to.magnitude;
-        if (dist > AggroRange * 2.5f) { ExitCombat(); return; }
+        if (dist > AggroRange * 2.5f) { Disengage(); return; }
+
+        // Track when the target was last actually visible (line of sight). If the
+        // player breaks sight (rounds a corner, hides) for loseSightSeconds, the
+        // NPC gives up, returns to where it started, and resumes its routine.
+        if (HasLineOfSightTo(_combatTarget)) _lastSawTargetTime = Time.time;
+        if (Time.time - _lastSawTargetTime >= loseSightSeconds) { Disengage(); return; }
 
         // Face the target.
         if (to.sqrMagnitude > 0.0001f)
@@ -547,6 +690,15 @@ public class NpcController : MonoBehaviour, IDamageable
         bool movePrevented = _buffs != null && _buffs.IsMovementPrevented;
         float range = AttackRange();
 
+        if (IsArcher)
+            ArcherCombat(to, dist, range, movePrevented);
+        else
+            MeleeCombat(to, dist, range, movePrevented);
+    }
+
+    // Melee NPCs close the gap, then stop and swing in range.
+    void MeleeCombat(Vector3 to, float dist, float range, bool movePrevented)
+    {
         if (dist > range && !movePrevented)
         {
             _agent.isStopped = false;
@@ -565,10 +717,64 @@ public class NpcController : MonoBehaviour, IDamageable
         UpdateMeleeSwing();
     }
 
+    // Archers kite: hold the player at range, back away when crowded (firing as
+    // they retreat), and stand still only for the brief draw/release of each shot.
+    void ArcherCombat(Vector3 to, float dist, float range, bool movePrevented)
+    {
+        // Resolve the firing phase first — the NPC must be stationary while it
+        // draws and looses the arrow.
+        if (UpdateArcherFire())
+        {
+            if (_agent.isOnNavMesh) _agent.isStopped = true;
+            _charAnim.SetSpeed(0f);
+            return;
+        }
+
+        float tooClose = range * 0.5f;   // start backing away inside half arrow range
+
+        if (dist < tooClose && !movePrevented)
+        {
+            // Player is crowding us — retreat ~5 units away and fire as we go.
+            Retreat(to);
+            if (Time.time >= _attackCooldownUntil && FacingTarget(to))
+                BeginAttack();
+        }
+        else if (dist > range && !movePrevented)
+        {
+            // Out of range — close the gap.
+            _agent.isStopped = false;
+            _agent.speed     = RunSpeed;
+            _agent.SetDestination(_combatTarget.position);
+            _charAnim.SetSpeed(Mathf.Clamp01(_agent.velocity.magnitude / RunSpeed));
+        }
+        else
+        {
+            // Comfortable range — hold position and shoot.
+            if (_agent.isOnNavMesh) _agent.isStopped = true;
+            _charAnim.SetSpeed(0f);
+            if (!movePrevented && Time.time >= _attackCooldownUntil && FacingTarget(to))
+                BeginAttack();
+        }
+    }
+
+    // Move ~5 units directly away from the target, snapped onto the navmesh.
+    void Retreat(Vector3 to)
+    {
+        Vector3 away   = (-to).sqrMagnitude > 0.0001f ? (-to).normalized : -transform.forward;
+        Vector3 target = transform.position + away * 5f;
+        if (NavMesh.SamplePosition(target, out var hit, 5f, NavMesh.AllAreas))
+            target = hit.position;
+
+        _agent.isStopped = false;
+        _agent.speed     = RunSpeed;
+        _agent.SetDestination(target);
+        _charAnim.SetSpeed(Mathf.Clamp01(_agent.velocity.magnitude / RunSpeed));
+    }
+
     bool IsArcher => CharacterAnimator.StanceFor(_equippedWeapon) == WeaponStance.Archer;
 
     float AttackRange() =>
-        IsArcher ? Mathf.Min(AggroRange, 14f)
+        IsArcher ? AggroRange   // archers shoot out to their full vision range
                  : (_equippedWeapon != null ? _equippedWeapon.weaponRange : 1.5f) + 1.4f;
 
     float AttackInterval() =>
@@ -578,12 +784,38 @@ public class NpcController : MonoBehaviour, IDamageable
     bool FacingTarget(Vector3 to) =>
         to.sqrMagnitude < 0.0001f || Vector3.Angle(transform.forward, to) < 30f;
 
+    // ── Archer firing phase ─────────────────────────────────────────────────────
+    // The NPC holds still while it draws and looses the arrow, then recovers.
+    bool  _firing, _fired;
+    float _fireRelease, _fireEnd;
+    const float ArcherDrawTime    = 0.35f;  // draw before the arrow releases
+    const float ArcherRecoverTime = 0.25f;  // brief settle after release
+
+    // Returns true while locked in the draw/release/recover phase (stay stationary).
+    bool UpdateArcherFire()
+    {
+        if (!_firing) return false;
+        if (!_fired && Time.time >= _fireRelease)
+        {
+            _fired = true;
+            FireArrow();
+        }
+        if (Time.time >= _fireEnd) { _firing = false; return false; }
+        return true;
+    }
+
     void BeginAttack()
     {
         _attackCooldownUntil = Time.time + AttackInterval();
         _charAnim.TriggerAttack();
 
-        if (IsArcher) FireArrow();
+        if (IsArcher)
+        {
+            _firing      = true;
+            _fired       = false;
+            _fireRelease = Time.time + ArcherDrawTime;
+            _fireEnd     = Time.time + ArcherDrawTime + ArcherRecoverTime;
+        }
         else { _swinging = true; _swingHit = false; _swingStart = Time.time + 0.15f; _swingEnd = Time.time + 0.5f; }
     }
 

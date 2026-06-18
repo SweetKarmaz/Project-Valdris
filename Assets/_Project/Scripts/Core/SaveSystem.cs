@@ -87,6 +87,11 @@ public class SaveSystem : MonoBehaviour
 
     private static string SavesDirectory => Path.Combine(Application.persistentDataPath, "Saves");
 
+    // Companion folder holding the scene-state snapshot for a given save file.
+    // e.g. save_20260618_120000.json -> Saves/save_20260618_120000_scenes/
+    private static string SceneSnapshotDir(string saveFileName) =>
+        Path.Combine(SavesDirectory, Path.GetFileNameWithoutExtension(saveFileName) + "_scenes");
+
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -130,6 +135,10 @@ public class SaveSystem : MonoBehaviour
     {
         string path = Path.Combine(SavesDirectory, fileName);
         if (File.Exists(path)) File.Delete(path);
+
+        // Remove the save's scene-state snapshot too.
+        string snapshot = SceneSnapshotDir(fileName);
+        if (Directory.Exists(snapshot)) Directory.Delete(snapshot, recursive: true);
     }
 
     // ---- Saving ----
@@ -138,10 +147,16 @@ public class SaveSystem : MonoBehaviour
     // deleting the file deletes everything about that save.
     public void Save()
     {
+        // Flush the current scene into the live session folder, then write the
+        // save file and freeze a snapshot of the whole session world alongside it.
         SceneStateManager.Instance?.SaveState();
         SaveData data = CaptureState();
         string fileName = $"save_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
         File.WriteAllText(Path.Combine(SavesDirectory, fileName), JsonUtility.ToJson(data, prettyPrint: true));
+
+        // Snapshot the live session scene-states so loading this save reverts the
+        // world (visited zones, dead NPCs, looted containers) to this moment.
+        CopyDirectory(SceneStateManager.SessionScenesDir, SceneSnapshotDir(fileName));
         Debug.Log($"Game saved: {fileName}");
     }
 
@@ -157,6 +172,11 @@ public class SaveSystem : MonoBehaviour
 
         SaveData data = JsonUtility.FromJson<SaveData>(File.ReadAllText(path));
         RestoreGlobalState(data);
+
+        // Replace the live session world with this save's frozen snapshot so every
+        // scene reverts to its state at save time (zones the player hadn't visited
+        // become first-visit/pristine again).
+        RestoreSessionScenes(fileName);
 
         SuppressSceneAutoSave = false; // safe to auto-save again in gameplay
         IsRestoringFromSave   = true;
@@ -191,6 +211,31 @@ public class SaveSystem : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null) { Debug.LogWarning("Loaded scene has no Player to restore."); return; }
         player.GetComponent<CharacterBuffs>()?.RestoreState(data.appliedBuffs, database);
+        // Vitals aren't persisted — restore the player to full health/mana so a save
+        // made (or loaded) after death doesn't spawn the player dead.
+        player.GetComponent<PlayerStats>()?.ReviveFull();
+    }
+
+    // Wipes the live session scene-states and replaces them with the given save's
+    // snapshot. If the save has no snapshot (e.g. an old save from before this
+    // system), the session is simply cleared so every scene starts pristine.
+    private void RestoreSessionScenes(string saveFileName)
+    {
+        string sessionDir = SceneStateManager.SessionScenesDir;
+        if (Directory.Exists(sessionDir)) Directory.Delete(sessionDir, recursive: true);
+
+        string snapshot = SceneSnapshotDir(saveFileName);
+        if (Directory.Exists(snapshot)) CopyDirectory(snapshot, sessionDir);
+        else Directory.CreateDirectory(sessionDir);
+    }
+
+    // Flat copy of the scene-state folder (it contains only *_scene.json files).
+    private static void CopyDirectory(string source, string dest)
+    {
+        if (!Directory.Exists(source)) return;
+        Directory.CreateDirectory(dest);
+        foreach (string file in Directory.GetFiles(source))
+            File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), overwrite: true);
     }
 
     // ---- State capture/restore ----

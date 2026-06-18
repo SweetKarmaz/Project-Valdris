@@ -16,7 +16,8 @@ using UnityEngine.SceneManagement;
 //
 // This asset is READ-ONLY at runtime. SceneStateManager only uses it on a
 // scene's very first visit in a playthrough. After that, the per-playthrough
-// JSON in Application.persistentDataPath/Scenes/<scene>_scene.json is used.
+// JSON in Application.persistentDataPath/Session/Scenes/<scene>_scene.json is used
+// (snapshotted into each save's companion folder on save).
 public static class SceneDefaultStateBuilder
 {
     [MenuItem("Tools/Valdris/Create Default Scene State")]
@@ -122,7 +123,7 @@ public static class SceneDefaultStateBuilder
             $"Asset location:\n{assetPath}\n\n" +
             $"This asset is the pristine starting point for this scene. " +
             $"It is never modified at runtime — each playthrough uses a separate " +
-            $"JSON file in Application.persistentDataPath/Scenes/.",
+            $"JSON file in Application.persistentDataPath/Session/Scenes/.",
             "OK");
     }
 }

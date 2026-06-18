@@ -27425,8 +27425,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6030316609677086075, guid: 90a4518d5f6fcb44884a5a838e1e8356, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 751768423}
   m_SourcePrefab: {fileID: 100100000, guid: 90a4518d5f6fcb44884a5a838e1e8356, type: 3}
+--- !u!1 &751768422 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6030316609677086075, guid: 90a4518d5f6fcb44884a5a838e1e8356, type: 3}
+  m_PrefabInstance: {fileID: 751768421}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &751768423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 751768422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2da1c54559093b49b1e92c24ab6cf2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Merchant
+  stock: []
+  baselineGold: 200
+  goldRestockSeconds: 8
+  goldRestockAmount: 5
+  buyMarkup: 1.5
+  sellMarkdown: 0.5
+  charismaPriceShift: 0.01
 --- !u!1001 &752780472
 PrefabInstance:
   m_ObjectHideFlags: 0

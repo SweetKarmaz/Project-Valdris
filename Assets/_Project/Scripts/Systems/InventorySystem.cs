@@ -373,6 +373,15 @@ public class InventorySystem : MonoBehaviour
         }
     }
 
+    // Wipes everything for a fresh New Game (inventory, equipment, thrown, gold).
+    public void ClearAll()
+    {
+        _inventory.Clear();
+        _equippedLoot.Clear();
+        _equippedThrown = null;
+        Gold = 0;
+    }
+
     public List<InventorySlotSave> CaptureState() => _inventory.Capture();
 
     public void RestoreState(List<InventorySlotSave> saved, GameDatabase database)

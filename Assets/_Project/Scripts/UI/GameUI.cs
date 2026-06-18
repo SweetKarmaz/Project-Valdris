@@ -189,7 +189,17 @@ public class GameUI : MonoBehaviour
         var   oldMatrix = GUI.matrix;
         GUIUtility.ScaleAroundPivot(new Vector2(uiScale, uiScale), new Vector2(px, py));
 
-        GUI.Box(new Rect(px, py, PanelW, PanelH), "");
+        // Solid opaque panel background so the game world never shows through.
+        var panelRect = new Rect(px, py, PanelW, PanelH);
+        GUI.color = new Color(0.04f, 0.04f, 0.05f, 1f);
+        GUI.DrawTexture(panelRect, Texture2D.whiteTexture);
+        GUI.color = new Color(1f, 1f, 1f, 0.18f);
+        GUI.DrawTexture(new Rect(panelRect.x, panelRect.y, panelRect.width, 1f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panelRect.x, panelRect.y + panelRect.height - 1f, panelRect.width, 1f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panelRect.x, panelRect.y, 1f, panelRect.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panelRect.x + panelRect.width - 1f, panelRect.y, 1f, panelRect.height), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        GUI.Box(panelRect, "");
 
         DrawTabs(px, py);
         DrawCloseButton(px, py);

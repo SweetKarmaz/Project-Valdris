@@ -11,6 +11,10 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class ProjectileBehaviour : MonoBehaviour
 {
+    // Gravity multiplier applied to every projectile. 0.5 ≈ doubles horizontal
+    // range before the projectile reaches the ground.
+    const float GravityRangeFactor = 0.5f;
+
     // ── Runtime state ─────────────────────────────────────────────────────────
 
     LootItem   _data;
@@ -58,8 +62,11 @@ public class ProjectileBehaviour : MonoBehaviour
         if (!_launched || _stopped) return;
 
         // Apply scaled gravity so 0 = straight, 1 = full Physics.gravity.
+        // Halved so arrows fly ~2× as far before dropping to the ground
+        // (horizontal range is inversely proportional to gravity).
         if (_data.projectileGravityScale > 0f)
-            _rb.AddForce(Physics.gravity * _data.projectileGravityScale, ForceMode.Acceleration);
+            _rb.AddForce(Physics.gravity * (_data.projectileGravityScale * GravityRangeFactor),
+                         ForceMode.Acceleration);
 
         // Rotate to follow velocity (arrow points along its arc).
         if (_rb.linearVelocity.sqrMagnitude > 0.01f)

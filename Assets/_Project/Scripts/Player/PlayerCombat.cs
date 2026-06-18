@@ -98,10 +98,25 @@ public class PlayerCombat : MonoBehaviour
             var target = hit.collider.GetComponentInParent<IDamageable>();
             if (target == null || !_struckThisSwing.Add(target)) continue;
             if (((Component)target).gameObject == gameObject) continue; // never hit ourselves
+            if (IsProtected((Component)target)) continue;               // peaceful NPC no-attack zone
 
             bool  isCrit = _stats.RollPhysicalCrit();
             float damage = _stats.AttackDamage * (isCrit ? _stats.CritMultiplier : 1f);
             Combat.ApplyHit(((Component)target).gameObject, gameObject, damage, riders, isCrit);
         }
+    }
+
+    // Distance, in metres, inside which peaceful (talkable / merchant) NPCs can't
+    // be hit by melee — stops the player accidentally swinging on a vendor while
+    // aiming past them. Temporary until a proper friendly/hostile model exists.
+    const float NoAttackRadius = 5f;
+
+    bool IsProtected(Component target)
+    {
+        var npc = target.GetComponentInParent<NpcController>();
+        if (npc == null || npc.IsDead) return false;          // corpses are lootable, not protected
+        bool peaceful = npc.canTalk || npc.GetComponent<Merchant>() != null;
+        if (!peaceful) return false;
+        return Vector3.Distance(transform.position, npc.transform.position) < NoAttackRadius;
     }
 }

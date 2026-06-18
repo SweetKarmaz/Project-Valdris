@@ -82,10 +82,18 @@ public class PlayerManager : MonoBehaviour
     {
         _player = GameObject.FindGameObjectWithTag("Player");
 
+        // A Gateway may have requested a specific SpawnPoint in this scene. It
+        // takes precedence over the scene default (but not over a save restore).
+        SpawnPoint gatewaySpawn = SpawnPoint.FindById(SceneTransition.PendingSpawnId);
+        SceneTransition.PendingSpawnId = null;
+
+        Vector3    spawnPos = gatewaySpawn != null ? gatewaySpawn.SpawnPosition : scene.DefaultSpawnPosition;
+        Quaternion spawnRot = gatewaySpawn != null ? gatewaySpawn.SpawnRotation : scene.DefaultSpawnRotation;
+
         if (_player == null)
         {
             if (spawnPlayer)
-                _player = CreatePlayer(scene.DefaultSpawnPosition, scene.DefaultSpawnRotation);
+                _player = CreatePlayer(spawnPos, spawnRot);
         }
         else if (SaveSystem.IsRestoringFromSave && SaveSystem.PendingPlayerPosition.HasValue)
         {
@@ -97,6 +105,11 @@ public class PlayerManager : MonoBehaviour
                        SaveSystem.PendingPlayerRotation ?? Quaternion.identity);
             SaveSystem.PendingPlayerPosition = null;
             SaveSystem.PendingPlayerRotation = null;
+        }
+        else if (gatewaySpawn != null)
+        {
+            // Arrived through a Gateway — place the player at the target SpawnPoint.
+            WarpPlayer(_player, spawnPos, spawnRot);
         }
         else if (!SaveSystem.IsRestoringFromSave)
         {
@@ -112,6 +125,16 @@ public class PlayerManager : MonoBehaviour
         GrantSpells(baseStartingSpells);
         GrantSpells(scene.SpellsGrantedOnFirstVisit);
         SetupCamera(_player);
+    }
+
+    // Destroys the persistent player so a fresh one is rebuilt on the next scene
+    // init (used by New Game — the previous run's player must not carry over its
+    // death state, position, or inventory).
+    public void DestroyPlayer()
+    {
+        _player = GameObject.FindGameObjectWithTag("Player");
+        if (_player != null) Destroy(_player);
+        _player = null;
     }
 
     // Public entry point kept for any external callers (cutscenes, teleports, etc.).
