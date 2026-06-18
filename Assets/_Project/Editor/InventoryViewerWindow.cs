@@ -9,7 +9,7 @@ using UnityEngine;
 // set the *starting* inventory on the PlayerManager component instead).
 public class InventoryViewerWindow : EditorWindow
 {
-    [MenuItem("Tools/Valdris/Inventory Viewer")]
+    [MenuItem("Tools/Valdris/Debug/Inventory Viewer")]
     static void Open() => GetWindow<InventoryViewerWindow>("Inventory");
 
     Vector2 _scroll;

@@ -15,7 +15,7 @@ public static class ArrowAmmoGenerator
     const string BasePrefab = "Assets/_Project/Prefabs/WeaponProjectiles/Arrow_01.prefab";
     const string OutFolder  = "Assets/_Project/Prefabs/Loot/Weapons/Ammo";
 
-    [MenuItem("Tools/Valdris/Generate Arrow Ammo")]
+    [MenuItem("Tools/Valdris/Weapons/Generate Arrow Ammo")]
     public static void Generate()
     {
         var basePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePrefab);

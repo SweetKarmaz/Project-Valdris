@@ -23,7 +23,7 @@ public static class NpcClassGenerator
 {
     const string OutFolder = "Assets/_Project/ScriptableObjects/NpcClasses";
 
-    [MenuItem("Tools/Valdris/Generate NPC Appearance Classes")]
+    [MenuItem("Tools/Valdris/NPC/Generate Appearance Classes")]
     public static void Run()
     {
         if (!AssetDatabase.IsValidFolder(OutFolder))

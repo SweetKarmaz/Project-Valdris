@@ -20,7 +20,7 @@ using UnityEngine.SceneManagement;
 // (snapshotted into each save's companion folder on save).
 public static class SceneDefaultStateBuilder
 {
-    [MenuItem("Tools/Valdris/Create Default Scene State")]
+    [MenuItem("Tools/Valdris/Scene/Create Default Scene State")]
     public static void Build()
     {
         var activeScene = SceneManager.GetActiveScene();

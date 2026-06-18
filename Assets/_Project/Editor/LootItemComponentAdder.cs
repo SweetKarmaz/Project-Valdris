@@ -27,7 +27,7 @@ public static class LootItemComponentAdder
 {
     const string LootRoot = "Assets/_Project/Prefabs/Loot";
 
-    [MenuItem("Tools/Valdris/Add LootItem Components")]
+    [MenuItem("Tools/Valdris/Loot/Add LootItem Components")]
     public static void Run()
     {
         string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { LootRoot });

@@ -18,7 +18,7 @@ public static class LootRegistryBuilder
     // made while the editor was closed.
     static LootRegistryBuilder() => EditorApplication.delayCall += AutoRebuildIfNeeded;
 
-    [MenuItem("Tools/Valdris/Rebuild Loot Registry")]
+    [MenuItem("Tools/Valdris/Loot/Rebuild Loot Registry")]
     public static void RebuildViaMenu()
     {
         var registry = GetOrCreateRegistry();

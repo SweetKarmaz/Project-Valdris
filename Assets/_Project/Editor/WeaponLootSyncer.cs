@@ -22,7 +22,7 @@ public static class WeaponLootSyncer
     // Subfolders we sync — all others are silently ignored.
     static readonly string[] Subfolders = { "Axes", "Daggers", "Maces", "Shields", "Spears", "Staffs", "Swords", "Thrown" };
 
-    [MenuItem("Tools/Valdris/Sync Weapon Loot Prefabs")]
+    [MenuItem("Tools/Valdris/Weapons/Sync Weapon Loot Prefabs")]
     public static void Run()
     {
         int copied = 0, skipped = 0;

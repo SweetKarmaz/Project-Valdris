@@ -332,7 +332,7 @@ public static class GreyspireSceneBuilder
     // ENTRY POINT
     // ─────────────────────────────────────────────────────────────────────────
 
-    [MenuItem("Tools/Valdris/Build Greyspire Scene")]
+    [MenuItem("Tools/Valdris/Scene/Build Greyspire Scene")]
     public static void Build()
     {
         if (!EditorUtility.DisplayDialog("Build Greyspire Scene",

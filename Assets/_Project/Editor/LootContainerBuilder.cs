@@ -23,7 +23,7 @@ public static class LootContainerBuilder
     // Names we treat as lootable containers (chests + sacks/bags/pouches).
     static readonly Regex Match = new(@"^(Chest|Sack|Bag|Bags|Pouch)", RegexOptions.IgnoreCase);
 
-    [MenuItem("Tools/Valdris/Build Loot Containers")]
+    [MenuItem("Tools/Valdris/Loot/Build Loot Containers")]
     static void Build()
     {
         bool overwrite = Event.current != null && Event.current.shift;

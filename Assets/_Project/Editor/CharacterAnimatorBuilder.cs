@@ -48,7 +48,7 @@ public static class CharacterAnimatorBuilder
 
     const int Idle = 0, Walk = 1, Run = 2, Attack = 3, Hit = 4, Cast = 5, Death = 6;
 
-    [MenuItem("Tools/Valdris/Build Character Animator (loops + controller)")]
+    [MenuItem("Tools/Valdris/Character/Build Character Animator (loops + controller)")]
     public static void Build()
     {
         FixLoops();

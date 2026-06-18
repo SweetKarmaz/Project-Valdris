@@ -20,7 +20,7 @@ public static class HdrpMaterialFixer
         "Assets/_Project/Prefabs/Items/Containers",
     };
 
-    [MenuItem("Tools/Valdris/Log Container Materials")]
+    [MenuItem("Tools/Valdris/Loot/Materials/Log Container Materials")]
     static void LogMaterials()
     {
         foreach (string folder in Folders)
@@ -46,7 +46,7 @@ public static class HdrpMaterialFixer
         }
     }
 
-    [MenuItem("Tools/Valdris/Fix Missing Container Materials")]
+    [MenuItem("Tools/Valdris/Loot/Materials/Fix Missing Container Materials")]
     static void FixMissing()
     {
         var fallback = FindFallbackMaterial();
@@ -104,7 +104,7 @@ public static class HdrpMaterialFixer
         return null;
     }
 
-    [MenuItem("Tools/Valdris/Fix Loot Container Materials (HDRP)")]
+    [MenuItem("Tools/Valdris/Loot/Materials/Fix Loot Container Materials (HDRP)")]
     static void Fix()
     {
         var hdrpLit = Shader.Find("HDRP/Lit");

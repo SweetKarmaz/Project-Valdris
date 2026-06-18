@@ -33,7 +33,7 @@ public static class HeroWeaponCopier
         ("Sword",         "Swords"),
     };
 
-    [MenuItem("Tools/Valdris/Copy Hero Weapon Prefabs")]
+    [MenuItem("Tools/Valdris/Weapons/Copy Hero Weapon Prefabs")]
     public static void Run()
     {
         // Build a lookup of all existing filenames per subfolder for fast

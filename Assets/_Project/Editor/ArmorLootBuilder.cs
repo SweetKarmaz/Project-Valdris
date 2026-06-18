@@ -37,7 +37,7 @@ public static class ArmorLootBuilder
     const int ArmUpperPool = 21;   // Male_04_Arm_Upper_Right has children 00–20 (21 variants)
     const int ArmLowerPool = 19;   // Male_06_Arm_Lower_Right has children 00–18 (19 variants)
 
-    [MenuItem("Tools/Valdris/Build Armor Loot Prefabs")]
+    [MenuItem("Tools/Valdris/Loot/Build Armor Loot Prefabs")]
     static void Build()
     {
         bool overwrite = Event.current != null && Event.current.shift;

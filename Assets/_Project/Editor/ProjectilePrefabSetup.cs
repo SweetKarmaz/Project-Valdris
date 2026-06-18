@@ -18,7 +18,7 @@ public static class ProjectilePrefabSetup
 {
     const string ProjectileFolder = "Assets/_Project/Prefabs/WeaponProjectiles";
 
-    [MenuItem("Tools/Valdris/Setup Projectile Prefabs")]
+    [MenuItem("Tools/Valdris/Weapons/Setup Projectile Prefabs")]
     public static void Run()
     {
         string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { ProjectileFolder });

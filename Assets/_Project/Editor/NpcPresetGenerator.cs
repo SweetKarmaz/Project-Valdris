@@ -8,7 +8,7 @@ public static class NpcPresetGenerator
 {
     const string OutputFolder = "Assets/_Project/ScriptableObjects/NpcDefinitions";
 
-    [MenuItem("Tools/Valdris/Generate NPC Presets")]
+    [MenuItem("Tools/Valdris/NPC/Generate Presets")]
     static void Generate()
     {
         EnsureFolder("Assets/_Project/ScriptableObjects");

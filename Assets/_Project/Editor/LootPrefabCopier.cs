@@ -74,7 +74,7 @@ public static class LootPrefabCopier
 
     // ── Menu entry ─────────────────────────────────────────────────────────────
 
-    [MenuItem("Tools/Valdris/Copy Loot Prefabs")]
+    [MenuItem("Tools/Valdris/Loot/Copy Loot Prefabs")]
     public static void Run()
     {
         int copied  = 0;

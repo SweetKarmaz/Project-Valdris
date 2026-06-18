@@ -24,11 +24,9 @@ the corresponding folders/GUIDs will be missing:
 
 | Package | Imports to | Notes |
 |---|---|---|
-| **Gaia Pro / GTS (Procedural Worlds)** | `Assets/Procedural Worlds/` | Terrain / world tooling (largest dependency). |
 | **Synty – POLYGON Fantasy Hero Characters** | `Assets/Synty/` | The modular player & NPC characters (`Chr_Npc_Base`, etc.). |
 | **Synty – POLYGON Fantasy Kingdom** | `Assets/Synty/` | Props + loot containers (chests/sacks/bags), `PolygonFantasyKingdom_Mat_*`. |
-
-`Assets/Gaia User Data/` is Gaia-generated and is also ignored (regenerated locally).
+| **Synty – POLYGON Nature** | `Assets/Synty/` | Terrain layers, trees, plants, rocks, river/water for the outdoor world. |
 
 ### Included in the repo
 
@@ -46,11 +44,11 @@ the corresponding folders/GUIDs will be missing:
    cd Project-Valdris
    git lfs pull            # if your git wasn't LFS-enabled at clone time
    ```
-2. **Import the Asset Store packages** listed above (Gaia/GTS, Synty Fantasy Hero
-   Characters, Synty Fantasy Kingdom) into the matching folders.
+2. **Import the Asset Store packages** listed above (Synty Fantasy Hero
+   Characters, Synty Fantasy Kingdom, Synty Nature) into the matching folders.
 3. **Open in Unity 6000.4.11f1.** Let it rebuild the `Library/` (ignored) on first open.
 4. If Synty container/weapon materials show pink, run
-   **Tools → Valdris → Fix Loot Container Materials (HDRP)** (and
+   **Tools → Valdris → Loot → Materials → Fix Loot Container Materials (HDRP)** (and
    **Fix Missing Container Materials** if needed).
 
 ---

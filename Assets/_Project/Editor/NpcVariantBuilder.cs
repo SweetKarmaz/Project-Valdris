@@ -20,7 +20,7 @@ public static class NpcVariantBuilder
     const string ClassFolder     = "Assets/_Project/ScriptableObjects/NpcClasses";
     const string AnimController  = "Assets/_Project/Animation/CharacterAnimator.controller";
 
-    [MenuItem("Tools/Valdris/Build NPC Prefab Variants")]
+    [MenuItem("Tools/Valdris/NPC/Build Prefab Variants")]
     public static void Run()
     {
         // ── Load dependencies ─────────────────────────────────────────────────
