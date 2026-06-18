@@ -833,7 +833,7 @@ PlayerSettings:
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
-    Standalone: GAIA_INPUT_SYSTEM;HDPipeline;GAIA_2023;GAIA_2023_PRO;GAIA_MESH_PRESENT;GTS_PRESENT
+    Standalone: HDPipeline
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
