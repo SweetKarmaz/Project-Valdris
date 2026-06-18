@@ -172,7 +172,7 @@ public class VaelCrossingTerrainBuilder : EditorWindow
         data.SetHeights(0, 0, ComputeHeights(heightmapRes));
 
         // Reuse or create the Terrain GameObject in the scene.
-        var existing = Object.FindObjectsByType<Terrain>(FindObjectsSortMode.None)
+        var existing = Object.FindObjectsByType<Terrain>(FindObjectsInactive.Include)
             .FirstOrDefault(t => t.gameObject.name == TerrainObject);
         GameObject go = existing != null ? existing.gameObject : null;
         if (go == null)

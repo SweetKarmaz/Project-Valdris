@@ -47,7 +47,7 @@ public class GatewayEditor : Editor
         // ── Spawn Point dropdown ──────────────────────────────────────────────
         var spawnIdProp = serializedObject.FindProperty("destinationSpawnId");
 
-        var points = Object.FindObjectsByType<SpawnPoint>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var points = Object.FindObjectsByType<SpawnPoint>(FindObjectsInactive.Include);
         var ids = points
             .Where(p => !string.IsNullOrEmpty(p.spawnId))
             .Select(p => p.spawnId)
