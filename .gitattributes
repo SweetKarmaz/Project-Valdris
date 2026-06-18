@@ -60,6 +60,10 @@
 *.mov  filter=lfs diff=lfs merge=lfs -text
 *.webm filter=lfs diff=lfs merge=lfs -text
 
+# ── Git LFS: Unity TerrainData (binary heightmap/splat blobs) ────────────────
+# Name-scoped so only terrain data goes to LFS, not regular .asset files.
+*_TerrainData.asset filter=lfs diff=lfs merge=lfs -text
+
 # ── Git LFS: fonts & binaries ────────────────────────────────────────────────
 *.ttf   filter=lfs diff=lfs merge=lfs -text
 *.otf   filter=lfs diff=lfs merge=lfs -text
