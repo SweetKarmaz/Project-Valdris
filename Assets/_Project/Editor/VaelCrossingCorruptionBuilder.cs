@@ -20,6 +20,7 @@ public class VaelCrossingCorruptionBuilder : EditorWindow
     const string TerrainObject = "VaelCrossing Terrain";
     const string VolumeObject  = "VaelCrossing Corruption";
     const string CloudObject   = "VaelCrossing Corruption Clouds";
+    const string PuddleObject  = "VaelCrossing Corruption Puddles";
     const string AdventureEnv  = "Assets/Synty/PolygonAdventure/Prefabs/Environments";
     const string ProfileDir    = "Assets/_Project/Data/Volumes";
     const string ProfilePath   = ProfileDir + "/VaelCrossing_Corruption.asset";
@@ -40,6 +41,14 @@ public class VaelCrossingCorruptionBuilder : EditorWindow
     float cloudYJitter  = 15f;
     float cloudAlpha    = 0.85f;   // <1 = semi-transparent
     int   cloudSeed     = 99;
+
+    bool  doRain        = true;
+    float rainIntensity = 1f;
+    bool  doPuddles     = true;
+    float puddleSpacing = 16f;
+    Vector2 puddleSize  = new(1.5f, 4f);
+    float puddleSlopeMax = 14f;
+    int   puddleSeed    = 7;
 
     [MenuItem("Tools/Valdris/Scene/Build VaelCrossing Corruption")]
     static void Open() => GetWindow<VaelCrossingCorruptionBuilder>("VaelCrossing Corruption");
@@ -66,6 +75,19 @@ public class VaelCrossingCorruptionBuilder : EditorWindow
             cloudScale   = EditorGUILayout.Slider("Cloud Scale", cloudScale, 0.5f, 8f);
             cloudYJitter = EditorGUILayout.Slider("Cloud Height Spread", cloudYJitter, 0f, 60f);
             cloudAlpha   = EditorGUILayout.Slider("Cloud Opacity", cloudAlpha, 0.1f, 1f);
+        }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Rain & Puddles", EditorStyles.boldLabel);
+        doRain = EditorGUILayout.Toggle("Rain (screen overlay)", doRain);
+        using (new EditorGUI.DisabledScope(!doRain))
+            rainIntensity = EditorGUILayout.Slider("Rain Intensity", rainIntensity, 0.1f, 1f);
+        doPuddles = EditorGUILayout.Toggle("Puddles", doPuddles);
+        using (new EditorGUI.DisabledScope(!doPuddles))
+        {
+            puddleSpacing  = EditorGUILayout.Slider("Puddle Spacing", puddleSpacing, 5f, 50f);
+            puddleSize     = EditorGUILayout.Vector2Field("Puddle Size (min/max)", puddleSize);
+            puddleSlopeMax = EditorGUILayout.Slider("Puddle Max Slope", puddleSlopeMax, 2f, 30f);
         }
 
         EditorGUILayout.Space();
@@ -134,7 +156,11 @@ public class VaelCrossingCorruptionBuilder : EditorWindow
         vol.priority      = 1f;            // beats the global sky volume when inside
         vol.sharedProfile = profile;
 
+        // Rain: trigger the screen-overlay rain while the player is in this volume.
+        if (doRain) go.AddComponent<RainZone>().intensity = rainIntensity;
+
         BuildCloudsInternal(scene, origin, size, snowY, bandZ);
+        BuildPuddles(scene, terrain, origin, size, bandZ);
 
         AssetDatabase.SaveAssets();
         EditorSceneManager.MarkSceneDirty(scene);
@@ -203,6 +229,96 @@ public class VaelCrossingCorruptionBuilder : EditorWindow
         }
         HDMaterial.ValidateMaterial(mat);
         return mat;
+    }
+
+    // Scatters dark, glossy "wet" blobs on the south ground.
+    void BuildPuddles(Scene scene, Terrain terrain, Vector3 origin, Vector3 size, float bandZ)
+    {
+        var old = GameObject.Find(PuddleObject);
+        if (old != null) Undo.DestroyObjectImmediate(old);
+        if (!doPuddles || terrain == null) return;
+
+        var root = new GameObject(PuddleObject);
+        SceneManager.MoveGameObjectToScene(root, scene);
+        Undo.RegisterCreatedObjectUndo(root, "Create Puddles");
+
+        var data = terrain.terrainData;
+        var mat = MakeWet();
+        float waterY = (GameObject.Find("VaelCrossing Water")?.transform.position.y) ?? -9999f;
+
+        // A few organic blob meshes (flat, normal up) for varied puddle shapes.
+        var blobs = new Mesh[5];
+        for (int i = 0; i < blobs.Length; i++) blobs[i] = MakeBlobMesh(puddleSeed * 31 + i);
+
+        Random.InitState(puddleSeed);
+        float sp = Mathf.Max(4f, puddleSpacing);
+        for (float z = 0f; z < bandZ; z += sp)
+        for (float x = 0f; x < size.x; x += sp)
+        {
+            if (Random.value > 0.45f) continue;             // sparse
+            float px = origin.x + x + Random.Range(-sp, sp) * 0.4f;
+            float pz = origin.z + z + Random.Range(-sp, sp) * 0.4f;
+            float u = (px - origin.x) / size.x, v = (pz - origin.z) / size.z;
+            if (u < 0f || u > 1f || v < 0f || v > 1f) continue;
+
+            float gy = terrain.SampleHeight(new Vector3(px, 0f, pz)) + origin.y;
+            if (gy <= waterY + 0.5f) continue;
+            if (data.GetSteepness(u, v) > puddleSlopeMax) continue;
+
+            var q = new GameObject("Puddle");
+            q.transform.SetParent(root.transform);
+            q.AddComponent<MeshFilter>().sharedMesh = blobs[Random.Range(0, blobs.Length)];
+            var mr = q.AddComponent<MeshRenderer>();
+            if (mat != null) mr.sharedMaterial = mat;
+
+            Vector3 n = data.GetInterpolatedNormal(u, v);
+            q.transform.position = new Vector3(px, gy + 0.04f, pz);
+            q.transform.rotation = Quaternion.FromToRotation(Vector3.up, n) *
+                                   Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            float sx = Random.Range(puddleSize.x, puddleSize.y);
+            float sz = sx * Random.Range(0.6f, 1.4f);       // non-uniform → more shape variety
+            q.transform.localScale = new Vector3(sx, 1f, sz);
+        }
+    }
+
+    // Flat, irregular polygon (in the XZ plane, normal up) for an organic puddle.
+    static Mesh MakeBlobMesh(int seed)
+    {
+        var rnd = new System.Random(seed);
+        int n = rnd.Next(7, 11);
+        var verts = new Vector3[n + 1];
+        var tris  = new int[n * 3];
+        verts[0] = Vector3.zero;
+        for (int i = 0; i < n; i++)
+        {
+            float ang = i / (float)n * Mathf.PI * 2f;
+            float rad = 0.5f * (0.6f + (float)rnd.NextDouble() * 0.7f);
+            verts[i + 1] = new Vector3(Mathf.Cos(ang) * rad, 0f, Mathf.Sin(ang) * rad);
+        }
+        for (int i = 0; i < n; i++)
+        {
+            tris[i * 3]     = 0;
+            tris[i * 3 + 1] = (i + 1) % n + 1;
+            tris[i * 3 + 2] = i + 1;
+        }
+        var m = new Mesh { name = "VC_PuddleBlob" };
+        m.vertices = verts; m.triangles = tris;
+        m.RecalculateNormals(); m.RecalculateBounds();
+        return m;
+    }
+
+    static Material MakeWet()
+    {
+        var sh = Shader.Find("HDRP/Lit");
+        if (sh == null) return null;
+        var m = new Material(sh) { name = "VC_Puddle" };
+        m.SetColor("_BaseColor", new Color(0.02f, 0.03f, 0.03f, 1f));
+        m.SetFloat("_Smoothness", 0.92f);   // wet sheen
+        m.SetFloat("_Metallic", 0f);
+        m.SetFloat("_DoubleSidedEnable", 1f);   // visible from above regardless of quad facing
+        m.SetFloat("_CullMode", (float)UnityEngine.Rendering.CullMode.Off);
+        HDMaterial.ValidateMaterial(m);
+        return m;
     }
 
     static GameObject FindPrefab(string nameNoExt)
