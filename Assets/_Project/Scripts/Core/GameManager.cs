@@ -52,6 +52,8 @@ public class GameManager : MonoBehaviour
         CorruptionTracker.Instance?.ResetCorruption();
         HUDController.Instance?.Reset();
         PlayerManager.Instance?.DestroyPlayer();
+        GameClock.EnsureExists();
+        GameClock.Instance.ResetClock();
     }
 
     // Called by the intro cinematic when it finishes or is skipped.

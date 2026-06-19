@@ -39,6 +39,10 @@ public class SaveData
     public List<QuestRuntimeSave> questStates;
     public float corruptionLevel;
 
+    // World clock
+    public int   dayNumber;
+    public float timeOfDay;
+
     // Binary world choices: who was saved, which side was taken, crypt
     // cleared, etc. Other systems read these to vary the world.
     public List<WorldFlag> worldStateFlags;
@@ -255,6 +259,8 @@ public class SaveSystem : MonoBehaviour
             gold           = InventorySystem.Instance?.Gold ?? 0,
             questStates = QuestSystem.Instance?.CaptureState() ?? new List<QuestRuntimeSave>(),
             corruptionLevel = CorruptionTracker.Instance != null ? CorruptionTracker.Instance.corruptionLevel : 0f,
+            dayNumber = GameClock.Instance != null ? GameClock.Instance.Day : 1,
+            timeOfDay = GameClock.Instance != null ? GameClock.Instance.TimeOfDay : 8f,
             worldStateFlags = WorldStateSystem.Instance?.CaptureState() ?? new List<WorldFlag>(),
             currentScene = SceneManager.GetActiveScene().name,
             savedAtUtc = DateTime.UtcNow.ToString("o")
@@ -289,5 +295,10 @@ public class SaveSystem : MonoBehaviour
         WorldStateSystem.Instance?.RestoreState(data.worldStateFlags);
         if (CorruptionTracker.Instance != null)
             CorruptionTracker.Instance.corruptionLevel = data.corruptionLevel;
+
+        // Restore the clock (old saves have dayNumber 0 → default to Day 1, 08:00).
+        GameClock.EnsureExists();
+        if (data.dayNumber > 0) GameClock.Instance.SetTime(data.dayNumber, data.timeOfDay);
+        else                    GameClock.Instance.ResetClock();
     }
 }

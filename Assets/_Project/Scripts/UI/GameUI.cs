@@ -1350,6 +1350,20 @@ public class GameUI : MonoBehaviour
         };
         style.normal.textColor = new Color(0.35f, 0.38f, 0.33f, 1f);
         GUI.Label(new Rect(mapX, mapY, mapW, mapH), "Map — coming soon", style);
+
+        // Day / hour readout, top-right of the map.
+        if (GameClock.Instance != null)
+        {
+            var clock = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.UpperRight,
+                fontSize  = 15,
+                fontStyle = FontStyle.Bold,
+            };
+            clock.normal.textColor = new Color(0.92f, 0.9f, 0.78f, 1f);
+            GUI.Label(new Rect(mapX, mapY + 8f, mapW - 12f, 24f),
+                      $"Day {GameClock.Instance.Day} – {GameClock.Instance.Hour:00}:00", clock);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
