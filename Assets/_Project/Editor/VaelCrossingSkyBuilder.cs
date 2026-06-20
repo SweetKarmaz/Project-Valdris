@@ -68,6 +68,10 @@ public static class VaelCrossingSkyBuilder
 
         var exp = profile.components.OfType<Exposure>().FirstOrDefault() ?? profile.Add<Exposure>(true);
         exp.mode.overrideState = true; exp.mode.value = ExposureMode.Automatic;
+        // Default adaptation range (no clamp) — the earlier clamp fought the
+        // auto-exposure and made day/night worse.
+        exp.limitMin.overrideState = false;
+        exp.limitMax.overrideState = false;
 
         EditorUtility.SetDirty(profile);
 
