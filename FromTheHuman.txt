@@ -1,7 +1,9 @@
-This is SweetKarmaz talking! I manually created this file in the project folder. Which is the limit of what I am trying to do when it comes to working in the project directly. Importing packages and assets (human made, nothing done by AI), and have Claude (on Opus 4.8 as much as possible) do all the scripting. I was curious what the capabilities were like now. Can I, someone with some scripting knowledge but very familiar with game concepts, make an actual playable game?
+This is SweetKarmaz talking! I manually created this file in the project folder. Which is the limit of what I am trying to do when it comes to working in the project directly*. Importing packages and assets (human made, nothing done by AI), and have Claude (on Opus 4.8 as much as possible) do all the scripting. I was curious what the capabilities were like now. Can I, someone with some scripting knowledge but very familiar with game concepts, make an actual playable game?
 
 AI is going to be heavily used. Take a look, judge me and Claude. See how the project changes because of my shitty prompts. Is Claude training me to write better prompts, or just better at guessing what my end result should be? Who knows, but as the project is starting to get more complex now, I know this game would be massively beyond my capabilities without Claude.
 
 And yes, Claude is handling all of the git commit/pushes as well.
 
 One thing not included in the package, is the prompts. Honestly, its me floundering to explain the concepts. Sometimes, rarely, I am perfect! Mostly, I am adequate. And at times I am spectacuarly bad.
+
+*EDIT: To clarify, I will be providing any quest text, etc. But Claude is the one who will be adding it. Or making tools where I can make it, as I will need a custom quest creator, etc.

@@ -43,6 +43,9 @@ public class SaveData
     public int   dayNumber;
     public float timeOfDay;
 
+    // Collected key names (the Keyring)
+    public List<string> keyRing;
+
     // Binary world choices: who was saved, which side was taken, crypt
     // cleared, etc. Other systems read these to vary the world.
     public List<WorldFlag> worldStateFlags;
@@ -261,6 +264,7 @@ public class SaveSystem : MonoBehaviour
             corruptionLevel = CorruptionTracker.Instance != null ? CorruptionTracker.Instance.corruptionLevel : 0f,
             dayNumber = GameClock.Instance != null ? GameClock.Instance.Day : 1,
             timeOfDay = GameClock.Instance != null ? GameClock.Instance.TimeOfDay : 8f,
+            keyRing = Keyring.Instance != null ? Keyring.Instance.Capture() : new List<string>(),
             worldStateFlags = WorldStateSystem.Instance?.CaptureState() ?? new List<WorldFlag>(),
             currentScene = SceneManager.GetActiveScene().name,
             savedAtUtc = DateTime.UtcNow.ToString("o")
@@ -300,5 +304,8 @@ public class SaveSystem : MonoBehaviour
         GameClock.EnsureExists();
         if (data.dayNumber > 0) GameClock.Instance.SetTime(data.dayNumber, data.timeOfDay);
         else                    GameClock.Instance.ResetClock();
+
+        Keyring.EnsureExists();
+        Keyring.Instance.Restore(data.keyRing);
     }
 }

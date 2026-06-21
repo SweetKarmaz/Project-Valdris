@@ -276,6 +276,16 @@ public class InventorySystem : MonoBehaviour
     public int AddLootItem(LootItem item, int count = 1)
     {
         if (item == null || count <= 0) return count;
+
+        // Keys are absorbed into the persistent Keyring (one "Keys" token represents
+        // them all in the inventory). The ring token itself is added normally.
+        if (item.itemType == LootItemType.KeyItem && !item.isKeyRing)
+        {
+            Keyring.EnsureExists();
+            Keyring.Instance.Add(item.ItemName);
+            return 0;   // fully consumed into the ring
+        }
+
         int leftover = _inventory.Add(item, count);
         if (leftover > 0) OnInventoryFull?.Invoke(item);
         return leftover;

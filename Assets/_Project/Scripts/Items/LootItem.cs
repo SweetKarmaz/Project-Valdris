@@ -47,6 +47,9 @@ public class LootItem : MonoBehaviour
     [Header("Item Type")]
     public LootItemType itemType = LootItemType.Misc;
 
+    [Tooltip("The single 'Keys' token item. Keys loot into the Keyring system; this token represents them in the inventory and is never routed/absorbed.")]
+    public bool isKeyRing = false;
+
     // ── Weapon ────────────────────────────────────────────────────────────────
     // Shown / relevant when itemType == Weapon.
     // NpcController uses WeaponCategory to resolve attack-priority order.

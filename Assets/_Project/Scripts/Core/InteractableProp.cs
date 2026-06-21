@@ -94,6 +94,17 @@ public class InteractableProp : MonoBehaviour
     [Tooltip("World flags that must all be true to open. Leave empty if unlocked.")]
     public string[] doorRequiredWorldFlags;
     public string lockedMessage = "It's locked.";
+    [Tooltip("Shown once when the door is unlocked.")]
+    public string unlockedMessage = "Unlocked.";
+    [Tooltip("Optional bar/prop shown while locked; hidden once the door is unlocked.")]
+    public GameObject lockBlocker;
+    [Tooltip("Optional Gateway (on this object) that only fires once the door is unlocked and opened.")]
+    public Gateway linkedGateway;
+
+    bool _doorUnlocked;
+    DoorController _doorCache;
+    DoorController Door => _doorCache != null ? _doorCache : (_doorCache = GetComponentInChildren<DoorController>());
+    Gateway LinkedGateway => linkedGateway != null ? linkedGateway : GetComponent<Gateway>();
 
     // ── Rest Point ────────────────────────────────────────────────────────────
 
@@ -142,7 +153,7 @@ public class InteractableProp : MonoBehaviour
                 PropInteractionType.LootContainer   => _looted ? "Empty" : "Search",
                 PropInteractionType.Readable        => "Read",
                 PropInteractionType.Usable          => (usableOneShot && _used) ? usedLabel : "Use",
-                PropInteractionType.Door            => "Open",
+                PropInteractionType.Door            => DoorLocked ? "Unlock" : (Door != null && Door.IsOpen ? "Close" : "Open"),
                 PropInteractionType.RestPoint       => "Rest",
                 PropInteractionType.CraftingStation => "Craft",
                 PropInteractionType.Vendor          => "Shop",
@@ -179,6 +190,8 @@ public class InteractableProp : MonoBehaviour
     {
         if (interactionType == PropInteractionType.LootContainer && !string.IsNullOrEmpty(propId))
             SceneStateManager.Instance?.RegisterLootContainer(this);
+        if (interactionType == PropInteractionType.Door && !string.IsNullOrEmpty(propId))
+            SceneStateManager.Instance?.RegisterDoor(this);
     }
 
     void OnDestroy()
@@ -186,6 +199,8 @@ public class InteractableProp : MonoBehaviour
         All.Remove(this);
         if (interactionType == PropInteractionType.LootContainer && !string.IsNullOrEmpty(propId))
             SceneStateManager.Instance?.UnregisterLootContainer(this);
+        if (interactionType == PropInteractionType.Door && !string.IsNullOrEmpty(propId))
+            SceneStateManager.Instance?.UnregisterDoor(this);
     }
 
     // ── Highlight (called by InteractionHUD each frame) ───────────────────────
@@ -393,24 +408,73 @@ public class InteractableProp : MonoBehaviour
 
     // ── Door ──────────────────────────────────────────────────────────────────
 
+    // A key door stays "locked" until unlocked; a world-flag door is locked until
+    // its flags are all set.
+    bool DoorLocked
+    {
+        get
+        {
+            if (_doorUnlocked) return false;
+            if (doorRequiredWorldFlags != null)
+                foreach (string flag in doorRequiredWorldFlags)
+                    if (WorldStateSystem.Instance == null || !WorldStateSystem.Instance.GetFlag(flag)) return true;
+            return !string.IsNullOrEmpty(requiredKeyItemName);
+        }
+    }
+
     void HandleDoor()
     {
-        if (doorRequiredWorldFlags != null)
-            foreach (string flag in doorRequiredWorldFlags)
-                if (WorldStateSystem.Instance == null || !WorldStateSystem.Instance.GetFlag(flag))
-                { Debug.Log($"[Door] {lockedMessage}"); return; }
+        bool hasLock = !string.IsNullOrEmpty(requiredKeyItemName)
+                    || (doorRequiredWorldFlags != null && doorRequiredWorldFlags.Length > 0);
 
-        if (!string.IsNullOrEmpty(requiredKeyItemName))
+        if (!_doorUnlocked && hasLock)
         {
-            bool hasKey = false;
-            if (InventorySystem.Instance != null)
-                foreach (var slot in InventorySystem.Instance.GetSlots())
-                    if (slot.item != null && slot.item.ItemName == requiredKeyItemName) { hasKey = true; break; }
-            if (!hasKey) { Debug.Log($"[Door] {lockedMessage}"); return; }
+            // World-flag gate (needs the flag set — can't be opened with a key).
+            if (doorRequiredWorldFlags != null)
+                foreach (string flag in doorRequiredWorldFlags)
+                    if (WorldStateSystem.Instance == null || !WorldStateSystem.Instance.GetFlag(flag))
+                    { ScreenNotifier.Show(lockedMessage); return; }
+
+            // Key gate — checked against the Keyring; keys are never consumed.
+            if (!string.IsNullOrEmpty(requiredKeyItemName) &&
+                (Keyring.Instance == null || !Keyring.Instance.Has(requiredKeyItemName)))
+            { ScreenNotifier.Show(lockedMessage); return; }
+
+            Unlock();
         }
 
-        Debug.Log($"[Door] {gameObject.name} opened.");
-        gameObject.SetActive(false);
+        // Swing if there's a DoorController; otherwise fall back to hiding it.
+        if (Door != null) Door.Toggle();
+        else gameObject.SetActive(false);
+
+        // Gateway-door: only transition once it's unlocked and open.
+        if (LinkedGateway != null && (Door == null || Door.IsOpen)) LinkedGateway.Activate();
+
+        if (!string.IsNullOrEmpty(propId)) SceneStateManager.Instance?.SaveState();  // persist open/unlocked
+    }
+
+    void Unlock()
+    {
+        _doorUnlocked = true;
+        if (lockBlocker != null) lockBlocker.SetActive(false);   // remove the bar
+        if (!string.IsNullOrEmpty(unlockedMessage)) ScreenNotifier.Show(unlockedMessage);
+    }
+
+    // ── Door save / restore ───────────────────────────────────────────────────
+
+    public SavedDoorState CaptureDoorState() => new SavedDoorState
+    {
+        propId   = propId,
+        unlocked = _doorUnlocked,
+        open     = Door != null && Door.IsOpen,
+    };
+
+    public void RestoreDoorState(SavedDoorState s)
+    {
+        _doorUnlocked = s.unlocked;
+        if (s.unlocked && lockBlocker != null) lockBlocker.SetActive(false);   // bar stays gone
+        if (Door != null) Door.SetOpenInstant(s.open);
+        else if (s.open) gameObject.SetActive(false);
     }
 
     // ── Rest Point ────────────────────────────────────────────────────────────

@@ -90,6 +90,15 @@ public class SavedContainerState
     public List<InventorySlotSave> items = new();
 }
 
+// State for a Door InteractableProp: whether it's been unlocked and left open.
+[Serializable]
+public class SavedDoorState
+{
+    public string propId;
+    public bool   unlocked;
+    public bool   open;
+}
+
 // One activated mesh slot — the group name and the child index that was enabled.
 [Serializable]
 public class AppearanceSlotSave
@@ -111,4 +120,5 @@ public class SceneStateSave
     public List<SavedPropState>      props          = new();
     public List<SavedLootState>      lootContainers = new();
     public List<SavedContainerState> containers     = new();   // new LootContainer system
+    public List<SavedDoorState>      doors          = new();
 }

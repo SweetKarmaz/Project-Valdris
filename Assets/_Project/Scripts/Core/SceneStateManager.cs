@@ -129,6 +129,22 @@ public class SceneStateManager : MonoBehaviour
 
     public void UnregisterLootContainer(InteractableProp prop) => _trackedLoot.Remove(prop);
 
+    // ── Door registration ──────────────────────────────────────────────────────
+
+    readonly List<InteractableProp> _trackedDoors = new();
+
+    public void RegisterDoor(InteractableProp prop)
+    {
+        if (prop == null || _trackedDoors.Contains(prop)) return;
+        _trackedDoors.Add(prop);
+
+        if (_active == null || _active.firstVisit || string.IsNullOrEmpty(prop.propId)) return;
+        var saved = _active.doors?.Find(s => s.propId == prop.propId);
+        if (saved != null) prop.RestoreDoorState(saved);
+    }
+
+    public void UnregisterDoor(InteractableProp prop) => _trackedDoors.Remove(prop);
+
     // ── LootContainer (new Inventory-based system) ─────────────────────────────
 
     // Called by a placed LootContainer.Start() (and by SpawnDropped / dropped
@@ -198,6 +214,10 @@ public class SceneStateManager : MonoBehaviour
         _active.lootContainers.Clear();
         foreach (var loot in _trackedLoot)
             if (loot != null) _active.lootContainers.Add(loot.CaptureLootState());
+
+        _active.doors.Clear();
+        foreach (var door in _trackedDoors)
+            if (door != null) _active.doors.Add(door.CaptureDoorState());
 
         _active.containers.Clear();
         foreach (var c in _trackedContainers)
