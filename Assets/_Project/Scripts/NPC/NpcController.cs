@@ -303,6 +303,15 @@ public class NpcController : MonoBehaviour, IDamageable
             return;
         }
 
+        // A scripted sequence (escort/cutscene) is driving this NPC — follow the
+        // agent's set destination and skip all autonomous AI (wander/combat).
+        if (_scripted)
+        {
+            _agent.isStopped = false;
+            _charAnim.SetSpeed(_agent.hasPath ? _agent.velocity.magnitude / Mathf.Max(0.1f, WalkSpeed) : 0f);
+            return;
+        }
+
         CheckCorruptionHostility();   // corruption-hostile NPCs attack on sight
         CheckHostilePerception();     // aggressive NPCs attack when they SEE the player
 
@@ -644,6 +653,39 @@ public class NpcController : MonoBehaviour, IDamageable
         _charAnim?.SetStance(WeaponStance.NoWeapon);
         if (_agent != null && _agent.enabled) _agent.speed = WalkSpeed;   // restore wander pace
     }
+
+    // ── Scripted control (escorts / cutscenes) ────────────────────────────────
+    // While scripted, the NPC ignores wander/combat and just walks to the
+    // destination set via ScriptedMoveTo (driven by an EscortPlayerStep, etc.).
+
+    bool _scripted;
+    public bool IsScripted => _scripted;
+
+    public void BeginScripted()
+    {
+        _scripted = true;
+        if (_inCombat) ExitCombat();
+        if (_agent != null && _agent.enabled)
+        {
+            _agent.isStopped = false;
+            _agent.speed = RunSpeed;
+        }
+    }
+
+    public void EndScripted()
+    {
+        _scripted = false;
+        _idleUntil = Time.time;           // re-pick a wander destination promptly
+        if (_agent != null && _agent.enabled) _agent.speed = WalkSpeed;
+    }
+
+    public void ScriptedMoveTo(Vector3 worldPos)
+    {
+        if (_agent != null && _agent.enabled && _agent.isOnNavMesh) _agent.SetDestination(worldPos);
+    }
+
+    public bool ScriptedArrived =>
+        _agent == null || (!_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance + 0.2f);
 
     // ── Combat AI (chase / face / attack) ─────────────────────────────────────
 

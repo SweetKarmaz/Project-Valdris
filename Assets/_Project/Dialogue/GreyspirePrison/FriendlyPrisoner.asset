@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8916303bde4a725429b8d9f2822c1ff8, type: 3}
+  m_Name: FriendlyPrisoner
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  defaultSpeaker: Davan
+  nodes:
+  - speaker: 
+    text: Hey, hold up. Don't go out there yet - something is off.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 0
+    choices:
+    - text: Is it Mac again?
+      requireFlag: 
+      requireValue: 0
+      setFlag: 
+      setValue: 0
+      next: 1
+    - text: Happened now, Davan?
+      requireFlag: 
+      requireValue: 0
+      setFlag: 
+      setValue: 0
+      next: 2
+  - speaker: 
+    text: How do you remember Mac, but not your name?
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 2
+    choices: []
+  - speaker: 
+    text: 'Something is off. What was that noise last night? Some of the other guys
+      are getting antsy - or crazy. '
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 3
+    choices: []
+  - speaker: 
+    text: 'You rememeber your name yet? '
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 4
+    choices:
+    - text: No - how long have I been here, again?
+      requireFlag: 
+      requireValue: 0
+      setFlag: 
+      setValue: 0
+      next: 4
+  - speaker: 
+    text: 'Almost a year I reckon. Time is funny down in the rocks of Greyspire. '
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 5
+    choices:
+    - text: A year?! Davan, now that is crazy talk!
+      requireFlag: 
+      requireValue: 0
+      setFlag: 
+      setValue: 0
+      next: 5
+  - speaker: 
+    text: You ask me at least once a week. Again, how do you remember Mac's name,
+      but nothing else?
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 6
+    choices: []
+  - speaker: 
+    text: And you ain't crazy - not like how some of the guards and prisoners are
+      turning. Be careful out there today.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: -1
+    choices: []

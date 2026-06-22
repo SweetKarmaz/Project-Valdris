@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: DefaultSceneState
   m_EditorClassIdentifier: Assembly-CSharp::SceneDefaultState
   npcs: []
+  props: []

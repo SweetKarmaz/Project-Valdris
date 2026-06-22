@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8916303bde4a725429b8d9f2822c1ff8, type: 3}
+  m_Name: FriendlyGuard
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  defaultSpeaker: 
+  nodes:
+  - speaker: 
+    text: Step back, prisoner. No mine work today.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 0
+    choices:
+    - text: Why? What's going on?
+      requireFlag: 
+      requireValue: 0
+      setFlag: 
+      setValue: 0
+      next: 1
+    - text: I don't want any trouble.
+      requireFlag: 
+      requireValue: 0
+      setFlag: 
+      setValue: 0
+      next: 2
+  - speaker: 
+    text: Mine collapse.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 0
+    choices:
+    - text: That must have been the noise I heard last night. Is everyone OK?
+      requireFlag: 
+      requireValue: 0
+      setFlag: befriended_mine_guard
+      setValue: 0
+      next: 3
+  - speaker: 
+    text: Then move.
+    isEntry: 0
+    entryRequireFlag: angered_mine_guard
+    entryRequireValue: 0
+    next: -1
+    choices: []
+  - speaker: 
+    text: Warden said the injured were taken to Vael's Crossing for help, but I don't
+      know. No one is usually in the mines at night.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: -1
+    choices: []
+  - speaker: 
+    text: Keep back, it's not safe.
+    isEntry: 1
+    entryRequireFlag: befriended_mine_guard
+    entryRequireValue: 0
+    next: -1
+    choices: []
+  - speaker: 
+    text: Back. Up.
+    isEntry: 1
+    entryRequireFlag: angered_mine_guard
+    entryRequireValue: 0
+    next: -1
+    choices: []

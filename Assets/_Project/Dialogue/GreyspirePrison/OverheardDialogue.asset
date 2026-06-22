@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8916303bde4a725429b8d9f2822c1ff8, type: 3}
+  m_Name: OverheardDialogue
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  defaultSpeaker: 
+  nodes:
+  - speaker: Footsteps
+    text: I can hear footsteps coming down the hallway, and they stop in front of
+      my cell.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 1
+    choices: []
+  - speaker: Guard
+    text: You can't be down here, sir!
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 2
+    choices: []
+  - speaker: Unknown Man
+    text: I can go where I wish.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 3
+    choices: []
+  - speaker: Guard
+    text: I will need to report this to the Warden.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 4
+    choices: []
+  - speaker: Unknown Man
+    text: Go right up and do that, then. I am sure he wouldn't mind being interrupted
+      by you.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 5
+    choices: []
+  - speaker: Guard
+    text: I was bringing him here for questioning, and my orders don't include you.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 6
+    choices: []
+  - speaker: Unknown Man
+    text: If you would just ask the questions I need, I wouldn't have to be here.
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 7
+    choices: []
+  - speaker: Guard
+    text: We do, but he does not seem to remember anything. Whatever you did during
+      his arrest has damaged his head!
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 8
+    choices: []
+  - speaker: A Pause
+    text: I can hear the unknown man and guards breathing. What are they waiting
+      for?
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: 9
+    choices: []
+  - speaker: Unknown Man
+    text: You had better learn something soon. You don't want to be in the cell with
+      him, would you?
+    isEntry: 0
+    entryRequireFlag: 
+    entryRequireValue: 0
+    next: -1
+    choices: []

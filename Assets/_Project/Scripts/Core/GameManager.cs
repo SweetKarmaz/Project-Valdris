@@ -56,6 +56,7 @@ public class GameManager : MonoBehaviour
         GameClock.Instance.ResetClock();
         Keyring.EnsureExists();
         Keyring.Instance.Clear();
+        CutsceneControl.ForceClear();
     }
 
     // Called by the intro cinematic when it finishes or is skipped.

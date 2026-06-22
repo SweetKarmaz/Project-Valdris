@@ -65,6 +65,10 @@ public class FirstPersonCamera : MonoBehaviour
         _cc     = player != null ? player.GetComponent<CharacterController>() : null;
         _yaw    = player != null ? player.eulerAngles.y : 0f;
 
+        // A fresh scene must never inherit a cutscene movement-lock left dangling
+        // by an interrupted sequence.
+        CutsceneControl.ForceClear();
+
         // Restore camera pitch from a save if one is pending.
         if (SaveSystem.PendingCameraPitch.HasValue)
         {
@@ -80,6 +84,20 @@ public class FirstPersonCamera : MonoBehaviour
         // (including from the intro cinematic which unlocks it) don't leave the
         // camera frozen.
         if (player != null) LockCursor(true);
+    }
+
+    // Snap the view to look at a world point. Used by scripted events ("turn the
+    // player toward the NPC"). Applies immediately so it works even while look is
+    // suspended (e.g. a modal dialogue is open).
+    public void FaceToward(Vector3 worldPoint)
+    {
+        if (_player == null) return;
+        Vector3 dir = worldPoint - transform.position;
+        Vector3 flat = dir; flat.y = 0f;
+        if (flat.sqrMagnitude > 0.0001f) _yaw = Quaternion.LookRotation(flat).eulerAngles.y;
+        _pitch = Mathf.Clamp(-Mathf.Atan2(dir.y, flat.magnitude) * Mathf.Rad2Deg, minPitch, maxPitch);
+        _player.rotation   = Quaternion.Euler(0f, _yaw, 0f);
+        transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
     }
 
     // ── Camera update ──────────────────────────────────────────────────────────

@@ -38,6 +38,16 @@ public class PlayerController : MonoBehaviour
         _isGrounded = _cc.isGrounded;
         if (_isGrounded && _velocity.y < 0f) _velocity.y = -2f;
 
+        // A scripted sequence (forced dialogue, escort) has taken movement away —
+        // keep gravity so the player stays grounded, but ignore movement input.
+        if (CutsceneControl.MovementLocked)
+        {
+            _animator?.SetSpeed(0f);
+            _velocity.y += gravity * Time.deltaTime;
+            _cc.Move(_velocity * Time.deltaTime);
+            return;
+        }
+
         Vector2 input = InputManager.Move;
         bool running = InputManager.SprintHeld;
         float speed = (running ? runSpeed : moveSpeed) + (_stats != null ? _stats.MoveSpeedBonus : 0f);

@@ -66,7 +66,7 @@ public class PlayerRanged : MonoBehaviour
         if (_cooldown > 0f)
             _cooldown -= Time.deltaTime;
 
-        if (PauseMenuController.IsPaused || GameUI.IsOpen) return;
+        if (PauseMenuController.IsPaused || GameUI.IsOpen || UIModal.IsOpen) return;
         if (InteractionHUD.HasTarget) return; // click is claimed by an interactable
         if (!HasWeapon)  return;
         if (!InputManager.AttackPressed) return;
