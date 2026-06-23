@@ -92,6 +92,10 @@ public class GameUI : MonoBehaviour
         // processing input — otherwise the UI would be unresponsive.
         if (PauseMenuController.IsPaused && !IsOpen) return;
 
+        // Don't let the player open the tabbed menu (inventory/map/etc.) while a
+        // dialogue is running — it would let them break the conversation flow.
+        if (!IsOpen && DialogueSystem.Instance != null && DialogueSystem.Instance.IsActive) return;
+
         // TAB — toggle open/close
         if (InputManager.GameMenuPressed)
         {

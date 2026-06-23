@@ -28,10 +28,10 @@ MonoBehaviour:
       setValue: 0
       next: 1
     - text: I don't want any trouble.
-      requireFlag: 
+      requireFlag:
       requireValue: 0
-      setFlag: 
-      setValue: 0
+      setFlag: angered_mine_guard
+      setValue: 1
       next: 2
   - speaker: 
     text: Mine collapse.
@@ -44,13 +44,13 @@ MonoBehaviour:
       requireFlag: 
       requireValue: 0
       setFlag: befriended_mine_guard
-      setValue: 0
+      setValue: 1
       next: 3
   - speaker: 
     text: Then move.
     isEntry: 0
     entryRequireFlag: angered_mine_guard
-    entryRequireValue: 0
+    entryRequireValue: 1
     next: -1
     choices: []
   - speaker: 
@@ -65,13 +65,13 @@ MonoBehaviour:
     text: Keep back, it's not safe.
     isEntry: 1
     entryRequireFlag: befriended_mine_guard
-    entryRequireValue: 0
+    entryRequireValue: 1
     next: -1
     choices: []
   - speaker: 
     text: Back. Up.
     isEntry: 1
     entryRequireFlag: angered_mine_guard
-    entryRequireValue: 0
+    entryRequireValue: 1
     next: -1
     choices: []

@@ -107,5 +107,6 @@ public class ScriptedEvent : MonoBehaviour
         // Mark complete only after the sequence finishes, so a save taken mid-event
         // (then reloaded) replays it rather than leaving it half-done.
         if (once) WorldStateSystem.Instance?.SetFlag(Key, true);
+        else      _fired = false;   // repeatable — allow it to fire again
     }
 }

@@ -1097,6 +1097,8 @@ public class NpcController : MonoBehaviour, IDamageable
         if (_gearGenerated) return;
         _gearGenerated = true;
 
+        if (lootRarity == ItemRarity.None) return;   // no auto weapon — hand-placed gear only
+
         AttackType atk = AttackPriority != null && AttackPriority.Length > 0
             ? AttackPriority[0] : AttackType.Melee;
         if (atk == AttackType.Spells) return;   // casters need no held weapon
@@ -1139,12 +1141,14 @@ public class NpcController : MonoBehaviour, IDamageable
         // the item contents come from this NPC's per-instance list.
         if (definition != null && !definition.isLootable) return;
 
-        // Randomized corpse loot based on this NPC's loot rarity.
-        foreach (var r in LootDropTable.Roll(lootRarity))
-        {
-            var item = LootGenerator.GenerateItem(r);
-            if (item != null) _corpseLoot.Add(item, 1);
-        }
+        // Randomized corpse loot based on this NPC's loot rarity (None = skip,
+        // only the hand-placed items below drop).
+        if (lootRarity != ItemRarity.None)
+            foreach (var r in LootDropTable.Roll(lootRarity))
+            {
+                var item = LootGenerator.GenerateItem(r);
+                if (item != null) _corpseLoot.Add(item, 1);
+            }
 
         // Hand-authored carried items, added on top.
         if (items != null)
@@ -1156,7 +1160,8 @@ public class NpcController : MonoBehaviour, IDamageable
         int gMin = goldMin, gMax = goldMax;
         if (gMin == 0 && gMax == 0 && definition != null) { gMin = definition.goldMin; gMax = definition.goldMax; }
         int baseGold = gMax > gMin ? Random.Range(gMin, gMax + 1) : gMin;
-        _corpseGold = Mathf.RoundToInt(baseGold * LootDropTable.GoldMultiplier(lootRarity));
+        float goldMult = lootRarity == ItemRarity.None ? 1f : LootDropTable.GoldMultiplier(lootRarity);
+        _corpseGold = Mathf.RoundToInt(baseGold * goldMult);
     }
 
     void OnGUI()

@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1970602172926784, guid: f025702fd78a8c049840a8553792465d, type: 3}
       propertyPath: m_Name
-      value: Stirring_Stick_01
+      value: Stick
       objectReference: {fileID: 0}
     - target: {fileID: 4486078843777022, guid: f025702fd78a8c049840a8553792465d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -55,5 +55,70 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1970602172926784, guid: f025702fd78a8c049840a8553792465d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5998924062661910628}
   m_SourcePrefab: {fileID: 100100000, guid: f025702fd78a8c049840a8553792465d, type: 3}
+--- !u!1 &7127154518809975455 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1970602172926784, guid: f025702fd78a8c049840a8553792465d, type: 3}
+  m_PrefabInstance: {fileID: 7129124571210306015}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5998924062661910628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7127154518809975455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89ffa50810473d74785a3ad6c9af4ed3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LootItem
+  displayNameOverride: 
+  rarity: 0
+  icon: {fileID: 0}
+  flavorText: A stick.
+  goldValue: 1
+  isStackable: 0
+  maxStack: 999
+  defaultDropChance: 1
+  itemType: 0
+  isKeyRing: 0
+  weaponCategory: 0
+  weaponDamage: 10
+  weaponRange: 1.5
+  attackSpeedModifier: 0
+  requiredProjectile: 0
+  reloadTime: 1
+  isTwoHanded: 0
+  gripPositionOffset: {x: 0, y: 0, z: 0}
+  gripRotationOffset: {x: 0, y: 0, z: 0}
+  gripScale: {x: 1, y: 1, z: 1}
+  gripAtCenter: 0
+  spread: 2
+  projectileType: 1
+  projectileDamage: 10
+  projectileDamageBonus: 0
+  projectileSpeed: 30
+  projectileGravityScale: 0.3
+  projectileRange: 60
+  projectilePiercing: 0
+  embedOnHit: 1
+  despawnDelay: 8
+  throwCooldown: 0.8
+  onHitModifiers: []
+  equipSlot: 3
+  armorValue: 0
+  meshOverrides: []
+  onHitEffects: []
+  statModifiers: []
+  restoresHealth: 0
+  healthAmount: 0
+  healthIsPercent: 0
+  restoresMana: 0
+  manaAmount: 0
+  manaIsPercent: 0
+  consumedOnUse: 0

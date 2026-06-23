@@ -14,15 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NpcDefinition
   displayName: Prisoner
   title: 
+  npcClass: 0
   faction: 0
   isEssential: 0
   portrait: {fileID: 0}
   level: 1
-  maxHealth: 30
+  maxHealth: 60
   maxMana: 0
   baseArmor: 0
   xpReward: 5
-  behaviorType: 1
+  behaviorType: 0
   walkSpeed: 1.2
   runSpeed: 3
   allowedZones: []
@@ -30,20 +31,13 @@ MonoBehaviour:
   idleSecondsMax: 8
   isAggressive: 0
   aggroRange: 10
-  attackRange: 2
-  attackDamage: 5
-  attackCooldown: 1.5
-  fleeHealthThreshold: 0
+  fleeHealthThreshold: 60
   attackPriority: 00000000
   witnessedKillReaction: 1
   reactToFaction: 6
   fleeDuration: 60
   knownSpells: []
   manaRegenRate: 1
-  items: []
   goldMin: 0
   goldMax: 0
   isLootable: 0
-  canTalk: 1
-  greetingLine: Please, get me out of here.
-  talkRange: 3

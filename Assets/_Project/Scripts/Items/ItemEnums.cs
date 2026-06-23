@@ -9,7 +9,9 @@ using UnityEngine;
 
 // Item quality tiers. Used by LootItem.rarity and loot/colour systems.
 // Serialized as ints in assets — only append, never reorder.
-public enum ItemRarity { Common, Uncommon, Rare, Epic, Legendary }
+// None is appended LAST (= 5). On an NPC's lootRarity it means "generate no auto
+// loot/weapon — only the items placed by hand". Items are never authored as None.
+public enum ItemRarity { Common, Uncommon, Rare, Epic, Legendary, None }
 
 // The concrete equipment slots on a humanoid character (player or NPC).
 // Mesh-visible slots match the Synty PolygonFantasyHeroCharacters rig.
