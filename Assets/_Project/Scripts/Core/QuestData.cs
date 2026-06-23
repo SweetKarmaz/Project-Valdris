@@ -18,12 +18,24 @@ public class QuestData : ScriptableObject
     [Header("Objectives")]
     public List<QuestObjective> objectives = new();
 
+    [Header("On Accept")]
+    [Tooltip("Items handed to the player when the quest is accepted (e.g. the stick for a tutorial).")]
+    public List<LootItem> itemGrantsOnAccept = new();
+
     [Header("Turn In")]
-    [Tooltip("saveId of the NPC the player must speak to in order to complete the quest.")]
+    [Tooltip("If true (or if no Turn-In NPC is set), the quest completes and pays out " +
+             "automatically when its objectives are done — no NPC hand-in needed. Use for tutorials.")]
+    public bool autoComplete = false;
+    [Tooltip("saveId of the NPC the player must speak to in order to complete the quest. " +
+             "Leave blank for an auto-completing quest.")]
     public string turnInNpcSaveId;
     [TextArea(2, 4)]
     [Tooltip("What the NPC says when the player turns in the quest.")]
     public string turnInDialogue;
+
+    [TextArea(2, 4)]
+    [Tooltip("Flavour text shown on the 'Quest Complete' popup when this quest is finished.")]
+    public string completionText;
 
     [Header("Rewards")]
     public int goldReward;

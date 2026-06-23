@@ -115,6 +115,7 @@ public class PlayerCombat : MonoBehaviour
     {
         var npc = target.GetComponentInParent<NpcController>();
         if (npc == null || npc.IsDead) return false;          // corpses are lootable, not protected
+        if (npc.IsInCombat) return false;                     // hostile NPCs are always attackable
         bool peaceful = npc.canTalk || npc.GetComponent<Merchant>() != null;
         if (!peaceful) return false;
         return Vector3.Distance(transform.position, npc.transform.position) < NoAttackRadius;

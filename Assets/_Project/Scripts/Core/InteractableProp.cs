@@ -186,6 +186,21 @@ public class InteractableProp : MonoBehaviour
         _mpb       = new MaterialPropertyBlock();
     }
 
+    // The point used for proximity targeting/highlighting — the centre of the
+    // prop's rendered bounds rather than its pivot. Matters for off-pivot props
+    // like a door hinged on one edge: this keeps the clickable zone on the door
+    // itself instead of bunched around the hinge.
+    public Vector3 InteractionPoint
+    {
+        get
+        {
+            if (_renderers == null || _renderers.Length == 0) return transform.position;
+            Bounds b = _renderers[0].bounds;
+            for (int i = 1; i < _renderers.Length; i++) b.Encapsulate(_renderers[i].bounds);
+            return b.center;
+        }
+    }
+
     void Start()
     {
         if (interactionType == PropInteractionType.LootContainer && !string.IsNullOrEmpty(propId))
@@ -224,6 +239,9 @@ public class InteractableProp : MonoBehaviour
 
     public void Interact()
     {
+        if (!string.IsNullOrEmpty(propId))
+            QuestSystem.Instance?.ReportPropInteracted(propId);   // progress InteractWithProp objectives
+
         switch (interactionType)
         {
             case PropInteractionType.QuestStarter:    HandleQuestStarter();    break;

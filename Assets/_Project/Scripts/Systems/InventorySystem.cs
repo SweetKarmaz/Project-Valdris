@@ -283,11 +283,17 @@ public class InventorySystem : MonoBehaviour
         {
             Keyring.EnsureExists();
             Keyring.Instance.Add(item.ItemName);
+            QuestSystem.Instance?.ReportItemAcquired(item.ItemName);   // progress DeliverItem objectives
             return 0;   // fully consumed into the ring
         }
 
         int leftover = _inventory.Add(item, count);
         if (leftover > 0) OnInventoryFull?.Invoke(item);
+
+        // Progress DeliverItem objectives for each unit actually picked up.
+        int added = count - leftover;
+        for (int i = 0; i < added; i++) QuestSystem.Instance?.ReportItemAcquired(item.ItemName);
+
         return leftover;
     }
 

@@ -26,7 +26,7 @@ public class InteractionHUD : MonoBehaviour
     public float tradeRange     = 3f;
     public float lootRange      = 2.5f;
     public float containerRange = 3f;
-    public float nameTagRange   = 10f;
+    public float nameTagRange   = 20f;
     [Tooltip("Max distance the aim-raycast probes for an interactable. Should be ≥ the largest range above.")]
     public float maxInteractDistance = 6f;
 
@@ -34,7 +34,7 @@ public class InteractionHUD : MonoBehaviour
     public float reticleHalf = 9f;
 
     [Header("Name Tags")]
-    public float nameTagHeadOffset = 2.3f;
+    public float nameTagHeadOffset = 1.15f;
 
     // ── Runtime ───────────────────────────────────────────────────────────────
 
@@ -186,7 +186,13 @@ public class InteractionHUD : MonoBehaviour
                 else
                 {
                     var merchant = npc.GetComponent<Merchant>();
-                    if (merchant != null && merchant.CanTrade && h.distance <= tradeRange)
+                    // A hostile/in-combat NPC isn't talkable or tradeable — fall through
+                    // to the default reticle so left-click attacks it instead.
+                    if (npc.IsInCombat)
+                    {
+                        // no target set → regular reticle, melee handles the click
+                    }
+                    else if (merchant != null && merchant.CanTrade && h.distance <= tradeRange)
                         _merchantTarget = merchant;
                     else if (npc.canTalk && h.distance <= talkRange)
                         _talkTarget = npc;
@@ -252,7 +258,7 @@ public class InteractionHUD : MonoBehaviour
         {
             if (prop == null) continue;
 
-            float dist = Vector3.Distance(camPos, prop.transform.position);
+            float dist = Vector3.Distance(camPos, prop.InteractionPoint);
             if (dist <= prop.discoveryRange && prop.IsInteractable)
             {
                 prop.SetHighlight(PropHighlightState.Discovered);
@@ -278,6 +284,8 @@ public class InteractionHUD : MonoBehaviour
     {
         // Corruption gate: a corrupted player may be refused or attacked instead.
         if (npc.CorruptionBlocksInteraction()) return;
+
+        QuestSystem.Instance?.ReportTalkToNpc(npc.saveId);   // progress TalkToNpc objectives
 
         // Delegate to any NPCBase component on the same GameObject
         // (DialogueController, QuestGiver, etc.).

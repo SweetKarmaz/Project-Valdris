@@ -25,6 +25,11 @@ public class QuestSystem : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    void OnEnable()  => Zone.OnPlayerEnteredZone += HandleZoneEntered;
+    void OnDisable() => Zone.OnPlayerEnteredZone -= HandleZoneEntered;
+
+    void HandleZoneEntered(string zoneId) => ReportZoneReached(zoneId);   // progress ReachZone objectives
+
     // ── Accepting quests ──────────────────────────────────────────────────────
 
     public bool CanOffer(QuestData quest)
@@ -53,8 +58,18 @@ public class QuestSystem : MonoBehaviour
             foreach (string flag in quest.setsWorldFlagsOnAccept)
                 WorldStateSystem.Instance?.SetFlag(flag, true);
 
+        // Items handed over when the quest is taken (e.g. the stick for the
+        // "Escape" tutorial). Overflow drops in a bag at the player's feet.
+        if (quest.itemGrantsOnAccept != null)
+            foreach (var item in quest.itemGrantsOnAccept)
+                if (item != null) LootContainer.GiveToPlayerOrDrop(item, 1);
+
         OnQuestAccepted?.Invoke(quest);
         Debug.Log($"[QuestSystem] Accepted: {quest.title}");
+
+        // Handles zero-objective quests (and any already-satisfied on accept):
+        // they go straight to ready / auto-complete.
+        CheckCompletion(state);
     }
 
     public void CancelQuest(QuestData quest)
@@ -113,20 +128,19 @@ public class QuestSystem : MonoBehaviour
     void CheckCompletion(QuestRuntimeState state)
     {
         if (state.status != QuestStatus.InProgress) return;
-        if (state.data.objectives == null || state.data.objectives.Count == 0)
-        {
-            state.status = QuestStatus.ReadyToTurnIn;
-            OnQuestReadyToTurnIn?.Invoke(state.data);
-            return;
-        }
 
-        for (int i = 0; i < state.data.objectives.Count; i++)
-            if (state.objectiveCounts[i] < state.data.objectives[i].requiredCount) return;
+        if (state.data.objectives != null)
+            for (int i = 0; i < state.data.objectives.Count; i++)
+                if (state.objectiveCounts[i] < state.data.objectives[i].requiredCount) return;
 
         state.status = QuestStatus.ReadyToTurnIn;
         OnQuestReadyToTurnIn?.Invoke(state.data);
         OnQuestCompleted?.Invoke(state.data);
         Debug.Log($"[QuestSystem] Ready to turn in: {state.data.title}");
+
+        // Tutorials / quests with no turn-in NPC complete and pay out immediately.
+        if (state.data.autoComplete || string.IsNullOrEmpty(state.data.turnInNpcSaveId))
+            TurnIn(state.data);
     }
 
     // ── Turn-in ───────────────────────────────────────────────────────────────

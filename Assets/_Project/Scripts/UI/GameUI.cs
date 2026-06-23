@@ -96,6 +96,9 @@ public class GameUI : MonoBehaviour
         // dialogue is running — it would let them break the conversation flow.
         if (!IsOpen && DialogueSystem.Instance != null && DialogueSystem.Instance.IsActive) return;
 
+        // Same while a quest popup (accept/complete) is up.
+        if (!IsOpen && QuestPopupSystem.IsOpen) return;
+
         // TAB — toggle open/close
         if (InputManager.GameMenuPressed)
         {
@@ -1236,6 +1239,9 @@ public class GameUI : MonoBehaviour
             return;
         }
 
+        Vector2 screenMouse = Event.current.mousePosition;   // captured before the scroll offsets it
+        QuestData hover = null;
+
         float rowH = 0f;
         foreach (var state in quests)
         {
@@ -1256,7 +1262,9 @@ public class GameUI : MonoBehaviour
         foreach (var state in quests)
         {
             string badge = state.status == QuestStatus.ReadyToTurnIn ? "  ✓ Ready to turn in" : "";
-            GUI.Label(new Rect(0, iy, content.width, 26f), state.data.title + badge, titleStyle);
+            var titleRect = new Rect(0, iy, content.width, 26f);
+            GUI.Label(titleRect, state.data.title + badge, titleStyle);
+            if (titleRect.Contains(Event.current.mousePosition)) hover = state.data;  // local space inside scroll
             iy += 26f;
 
             if (!string.IsNullOrEmpty(state.data.description))
@@ -1288,6 +1296,8 @@ public class GameUI : MonoBehaviour
         }
 
         GUI.EndScrollView();
+
+        if (hover != null) QuestTooltip.Draw(hover, screenMouse);
     }
 
     void DrawCompletedQuests(float x, float y, float w, float h)

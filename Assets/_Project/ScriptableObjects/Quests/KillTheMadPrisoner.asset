@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80e7a1cf118b93c4e8c4f31c916454f4, type: 3}
+  m_Name: KillTheMadPrisoner
+  m_EditorClassIdentifier: Assembly-CSharp::QuestData
+  title: Kill The Mad Prisoner
+  description: 'This prisoner has gone mad. It is best to put him out of his misery
+    before he can do real damage. You have been given a stick to defend yourself.
+    Hit the TAB key or the I key to open your inventory, and drag the stick to your
+    main hand. Exit the inventory, and hit the left mouse button to attack. '
+  requiredWorldFlags: []
+  triggerType: 0
+  objectives:
+  - description: Tutorial - Kill The Mad Prisoner
+    type: 0
+    targetId: GreyspireMadPrisoner
+    requiredCount: 1
+  itemGrantsOnAccept:
+  - {fileID: 5998924062661910628, guid: 5fedfac3b41da934cbe7118bc48c2fa5, type: 3}
+  autoComplete: 1
+  turnInNpcSaveId: 
+  turnInDialogue: 
+  completionText: 
+  goldReward: 0
+  xpReward: 25
+  statPointReward: 0
+  corruptionReward: 0
+  itemRewards: []
+  spellRewards: []
+  setsWorldFlagsOnAccept: []
+  setsWorldFlagsOnComplete: []

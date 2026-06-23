@@ -9357,12 +9357,28 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1037088308093836617, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
+      propertyPath: maxHealth
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 1037088308093836617, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
+      propertyPath: definition
+      value: 
+      objectReference: {fileID: 11400000, guid: f713b15d009e34847b2bdce0eedc4196, type: 2}
+    - target: {fileID: 1037088308093836617, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
       propertyPath: lootRarity
       value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 1037088308093836617, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
       propertyPath: items.Array.size
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1037088308093836617, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
+      propertyPath: overrideMaxHealth
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1037088308093836617, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
+      propertyPath: displayNameOverride
+      value: Mad Prisoner
       objectReference: {fileID: 0}
     - target: {fileID: 1037088308093836617, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
       propertyPath: items.Array.data[0].lootItem
@@ -9432,6 +9448,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7066369950585732868, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
       insertIndex: -1
       addedObject: {fileID: 439405754}
+    - targetCorrespondingSourceObject: {fileID: 7066369950585732868, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 439405758}
     - targetCorrespondingSourceObject: {fileID: 7066369950585732868, guid: a797f375aef8c7f458659c294cd197ca, type: 3}
       insertIndex: -1
       addedObject: {fileID: 439405753}
@@ -9533,6 +9552,20 @@ MonoBehaviour:
   npcName: Mad Prisoner
   isInteractable: 1
   scriptedEvent: {fileID: 439405756}
+--- !u!114 &439405758
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 439405751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c478cae49717d24bb0c7a167dc9f2c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GiveQuestStep
+  quest: {fileID: 11400000, guid: d916fa16e0c8ffc47bdadce623c9de23, type: 2}
+  waitForPopup: 1
 --- !u!1001 &439982415
 PrefabInstance:
   m_ObjectHideFlags: 0

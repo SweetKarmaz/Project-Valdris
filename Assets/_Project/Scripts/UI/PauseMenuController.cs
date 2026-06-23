@@ -36,6 +36,10 @@ public class PauseMenuController : MonoBehaviour
             _transitioning = false; // main menu draws its own solid background
             return;
         }
+        // A quest popup owns Esc (it closes itself); never let Esc open the pause
+        // menu while one is open or on the frame it just closed.
+        if (QuestPopupSystem.IsOpen || QuestPopupSystem.ClosedThisFrame) return;
+
         if (InputManager.SkipPressed && !GameUI.EscConsumedByGameUI)
         {
             if (IsPaused) Resume();

@@ -426,6 +426,7 @@ public class NpcController : MonoBehaviour, IDamageable
             RollCorpseLoot();
             FireDeathFlags();
             ReportKillToQuestSystem();
+            XPSystem.Instance?.AddXP(XpReward);   // award kill XP (drives leveling)
             NotifyWitnesses();
         }
         else

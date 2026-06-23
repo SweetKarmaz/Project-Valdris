@@ -28,7 +28,7 @@ MonoBehaviour:
       setValue: 0
       next: 1
     - text: I don't want any trouble.
-      requireFlag:
+      requireFlag: 
       requireValue: 0
       setFlag: angered_mine_guard
       setValue: 1
@@ -49,8 +49,8 @@ MonoBehaviour:
   - speaker: 
     text: Then move.
     isEntry: 0
-    entryRequireFlag: angered_mine_guard
-    entryRequireValue: 1
+    entryRequireFlag: 
+    entryRequireValue: 0
     next: -1
     choices: []
   - speaker: 

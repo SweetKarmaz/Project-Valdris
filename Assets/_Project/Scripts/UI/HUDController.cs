@@ -173,18 +173,26 @@ public class HUDController : MonoBehaviour
                 ? Mathf.Clamp01(npc.CurrentHealth / npc.MaxHealth)
                 : 0f;
 
-            // World-space position above the NPC's head.
-            Vector3 headWorld = npc.transform.position + Vector3.up * 2.4f;
+            // World-space position above the NPC's head (sits closer to the body).
+            Vector3 headWorld = npc.transform.position + Vector3.up * 1.2f;
             Vector3 screenPos = cam.WorldToScreenPoint(headWorld);
 
-            // Skip if behind the camera.
-            if (screenPos.z < 0f) continue;
+            // Behind the camera → don't show a bar at all.
+            if (screenPos.z <= 0f) continue;
+
+            const float barW = 100f, barH = 10f;
+            const float sideMargin = 12f, topMargin = 18f;   // topMargin leaves room for the name
 
             // IMGUI Y is flipped relative to screen-space Y.
-            float sx = screenPos.x - 50f;
+            float sx = screenPos.x - barW * 0.5f;
             float sy = Screen.height - screenPos.y - 8f;
 
-            DrawBar(sx, sy, 100f, 10f, fill, new Color(0.80f, 0.10f, 0.10f, 0.88f), "");
+            // Keep the bar fully on-screen: pins to the top when the NPC is right
+            // in front/overhead, and slides to the left/right edge as they circle.
+            sx = Mathf.Clamp(sx, sideMargin, Screen.width  - barW - sideMargin);
+            sy = Mathf.Clamp(sy, topMargin,  Screen.height - barH - sideMargin);
+
+            DrawBar(sx, sy, barW, barH, fill, new Color(0.80f, 0.10f, 0.10f, 0.88f), "");
 
             // NPC name in small text above the bar.
             var nameStyle = new GUIStyle(GUI.skin.label)
