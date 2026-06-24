@@ -46,6 +46,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f1b4f99defe4a1144b79b97cddebb70c, type: 2}
   - {fileID: 11400000, guid: 17182e4a180ec9e4fa76433eb5fb650b, type: 2}
   - {fileID: 11400000, guid: 831dade3619335341ac87387b5d5a321, type: 2}
+  - {fileID: 11400000, guid: 251a30428fa050143a2fb6b2b2b35665, type: 2}
   spells:
   - {fileID: 11400000, guid: 75122aff4fd344eba520870b2c12e04c, type: 2}
   - {fileID: 11400000, guid: a80067b674a64a91a275cacf63ab1f3b, type: 2}

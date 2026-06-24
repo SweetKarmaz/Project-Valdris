@@ -226,6 +226,10 @@ public class InteractionHUD : MonoBehaviour
             if (screen.x < 0 || screen.x > Screen.width ||
                 screen.y < 0 || screen.y > Screen.height) continue;
 
+            // Non-hostile NPCs only show their name when the player can actually
+            // see them (no name tags through walls). Hostile ones always show.
+            if (!npc.IsInCombat && IsOccluded(camPos, headWorld, npc)) continue;
+
             bool isDead = npc.IsDead;
 
             string label = npc.DisplayName;
@@ -245,6 +249,30 @@ public class InteractionHUD : MonoBehaviour
         }
 
         _labels.Sort((a, b) => b.alpha.CompareTo(a.alpha));
+    }
+
+    // True if solid geometry sits between the camera and the NPC's head — i.e. the
+    // player can't actually see it. Ignores the player's own and the NPC's colliders.
+    static bool IsOccluded(Vector3 from, Vector3 to, NpcController npc)
+    {
+        Vector3 dir = to - from;
+        float dist = dir.magnitude;
+        if (dist < 0.01f) return false;
+
+        var hits = Physics.RaycastAll(from, dir.normalized, dist, ~0, QueryTriggerInteraction.Ignore);
+        if (hits.Length == 0) return false;
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        Transform playerRoot = PlayerManager.Instance?.Player != null
+            ? PlayerManager.Instance.Player.transform : null;
+
+        foreach (var h in hits)
+        {
+            if (playerRoot != null && h.collider.transform.IsChildOf(playerRoot)) continue; // ignore self
+            if (h.collider.transform.IsChildOf(npc.transform)) return false;                // reached the NPC → visible
+            return true;                                                                    // something blocks first
+        }
+        return false;
     }
 
     // Props use proximity targeting (closest interactable in range) plus a

@@ -123,7 +123,8 @@ public class DialogueSystem : MonoBehaviour
         float w  = Mathf.Min(820f, Screen.width - 80f);
         float x  = (Screen.width - w) * 0.5f;
         float boxH = 150f;
-        float y  = Screen.height - boxH - 110f;
+        // Raised so the box + choices clear the bottom hotbar slots.
+        float y  = Screen.height - boxH - 210f;
 
         // Backing panel.
         GUI.color = new Color(0f, 0f, 0f, 0.82f);

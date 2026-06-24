@@ -96,6 +96,7 @@ public class HUDController : MonoBehaviour
         if (!IsGameplayScene) return; // no HUD in the main menu / intro
 
         DrawPlayerBars();
+        DrawHotbar();
         DrawNpcBars();
     }
 
@@ -203,6 +204,154 @@ public class HUDController : MonoBehaviour
             nameStyle.normal.textColor = new Color(1f, 0.85f, 0.75f, 0.9f);
             GUI.Label(new Rect(sx - 10f, sy - 14f, 120f, 14f), npc.DisplayName, nameStyle);
         }
+    }
+
+    // ── Hotbar (bottom-centre): weapon [+ ammo] | 4 spells | 2 quick-use ───────
+
+    void DrawHotbar()
+    {
+        const float box = 54f, gap = 6f, groupGap = 22f;
+
+        var inv = InventorySystem.Instance;
+
+        // Resolve weapon + (conditional) ammo box.
+        LootItem weapon = null, ammo = null;
+        int ammoCount = 0;
+        bool showAmmo = false;
+        if (inv != null)
+        {
+            var thrown = inv.GetEquippedThrown();
+            var mh     = inv.GetEquippedLoot(EquipSlot.MainHand);
+            weapon = mh != null ? mh : thrown;
+            if (thrown != null) { ammo = thrown; ammoCount = inv.GetCount(thrown); showAmmo = true; }
+            else if (mh != null && mh.weaponCategory == WeaponCategory.Ranged)
+            { ammo = inv.GetEquippedAmmoItem(); ammoCount = inv.EquippedAmmoCount(); showAmmo = true; }
+        }
+
+        float widthA = (showAmmo ? 2 : 1) * box + (showAmmo ? gap : 0f);
+        float widthB = 4 * box + 3 * gap;
+        float widthC = 2 * box + gap;
+        float total  = widthA + widthB + widthC + groupGap * 2f;
+
+        float x = (Screen.width - total) * 0.5f;
+        float y = Screen.height - box - 14f;
+
+        // Group A: weapon (+ ammo).
+        ItemSlot(x, y, box, weapon, 0, false); x += box;
+        if (showAmmo) { x += gap; ItemSlot(x, y, box, ammo, ammoCount, false); x += box; }
+        x += groupGap;
+
+        // Group B: 4 spell slots, active one highlighted.
+        var sb = SpellbookSystem.Instance;
+        int active = ActiveSpellSlot();
+        for (int i = 0; i < 4; i++)
+        {
+            if (i > 0) x += gap;
+            SpellSlot(x, y, box, sb != null ? sb.GetSlot(i) : null, i == active, i + 1);
+            x += box;
+        }
+        x += groupGap;
+
+        // Group C: 2 quick-use slots (keys 9 / 0).
+        var q = QuickUseSystem.Instance;
+        for (int i = 0; i < 2; i++)
+        {
+            if (i > 0) x += gap;
+            var it = q != null ? q.GetSlot(i) : null;
+            ItemSlot(x, y, box, it, it != null && inv != null ? inv.GetCount(it) : 0, false, i == 0 ? "9" : "0");
+            x += box;
+        }
+    }
+
+    int ActiveSpellSlot()
+    {
+        var p  = PlayerManager.Instance != null ? PlayerManager.Instance.Player : null;
+        var pm = p != null ? p.GetComponent<PlayerMagic>() : null;
+        return pm != null ? pm.SelectedSlot : 0;
+    }
+
+    // A HUD box for an item (weapon/ammo/quick-use): icon or name, optional count + key label.
+    static void ItemSlot(float x, float y, float size, LootItem item, int count, bool highlight, string keyLabel = null)
+    {
+        var r = new Rect(x, y, size, size);
+        GUI.color = item != null ? HudRarityTint(item.rarity) : new Color(0.08f, 0.08f, 0.08f, 0.85f);
+        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.color = highlight ? new Color(1f, 0.85f, 0.3f, 1f)
+                  : item != null ? HudRarityColor(item.rarity) : new Color(1f, 1f, 1f, 0.18f);
+        DrawBorder(r, 2f);
+        GUI.color = Color.white;
+
+        if (item != null)
+        {
+            Texture icon = ItemIconUtil.Get(item);
+            if (icon != null)
+                GUI.DrawTexture(new Rect(x + 3f, y + 3f, size - 6f, size - 6f), icon, ScaleMode.ScaleToFit);
+            else
+            {
+                var ns = new GUIStyle(GUI.skin.label) { fontSize = 9, wordWrap = true, alignment = TextAnchor.MiddleCenter };
+                ns.normal.textColor = new Color(0.85f, 0.85f, 0.85f);
+                GUI.Label(new Rect(x + 2f, y + 2f, size - 4f, size - 4f), Trunc(item.ItemName, 12), ns);
+            }
+            if (count > 1)
+            {
+                var cs = new GUIStyle(GUI.skin.label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.LowerRight };
+                cs.normal.textColor = Color.white;
+                GUI.Label(new Rect(x, y, size - 4f, size - 3f), count.ToString(), cs);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(keyLabel)) DrawKeyTag(x, y, keyLabel);
+    }
+
+    // A HUD box for a spell slot: name (icon later), highlight when it's the active slot.
+    static void SpellSlot(float x, float y, float size, SpellData spell, bool active, int number)
+    {
+        var r = new Rect(x, y, size, size);
+        GUI.color = active ? new Color(0.18f, 0.16f, 0.06f, 0.9f) : new Color(0.08f, 0.08f, 0.10f, 0.85f);
+        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.color = active ? new Color(1f, 0.85f, 0.3f, 1f) : new Color(0.45f, 0.55f, 0.9f, 0.5f);
+        DrawBorder(r, active ? 3f : 2f);
+        GUI.color = Color.white;
+
+        if (spell != null)
+        {
+            var ns = new GUIStyle(GUI.skin.label) { fontSize = 10, wordWrap = true, alignment = TextAnchor.MiddleCenter };
+            ns.normal.textColor = active ? new Color(1f, 0.95f, 0.7f) : new Color(0.85f, 0.88f, 1f);
+            GUI.Label(new Rect(x + 2f, y + 4f, size - 4f, size - 6f), Trunc(spell.spellName, 14), ns);
+        }
+        DrawKeyTag(x, y, number.ToString());
+    }
+
+    static void DrawKeyTag(float x, float y, string key)
+    {
+        var ks = new GUIStyle(GUI.skin.label) { fontSize = 10, fontStyle = FontStyle.Bold, alignment = TextAnchor.UpperLeft };
+        ks.normal.textColor = new Color(0.9f, 0.9f, 0.6f, 0.9f);
+        GUI.Label(new Rect(x + 3f, y + 1f, 18f, 14f), key, ks);
+    }
+
+    static void DrawBorder(Rect r, float t)
+    {
+        GUI.DrawTexture(new Rect(r.x, r.y, r.width, t), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(r.x, r.y + r.height - t, r.width, t), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(r.x, r.y, t, r.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(r.x + r.width - t, r.y, t, r.height), Texture2D.whiteTexture);
+    }
+
+    static string Trunc(string s, int n) => string.IsNullOrEmpty(s) || s.Length <= n ? s : s.Substring(0, n - 1) + "…";
+
+    static Color HudRarityColor(ItemRarity r) => r switch
+    {
+        ItemRarity.Uncommon  => new Color(0.4f, 1f, 0.4f),
+        ItemRarity.Rare      => new Color(0.4f, 0.6f, 1f),
+        ItemRarity.Epic      => new Color(0.75f, 0.4f, 1f),
+        ItemRarity.Legendary => new Color(1f, 0.65f, 0.2f),
+        _                    => new Color(0.8f, 0.8f, 0.8f, 0.7f),
+    };
+
+    static Color HudRarityTint(ItemRarity r)
+    {
+        Color c = HudRarityColor(r);
+        return new Color(c.r, c.g, c.b, 0.18f);
     }
 
     // ── Death screen ──────────────────────────────────────────────────────────

@@ -554,7 +554,7 @@ public class GameUI : MonoBehaviour
 
     void DrawCharacterPreview(float x, float y, float w, float h)
     {
-        const float goldH  = 26f;
+        const float goldH  = 52f;   // taller strip: Gold on the left, ammo box on the right
         const float margin = 6f;
 
         float imgX = x + margin;
@@ -591,7 +591,53 @@ public class GameUI : MonoBehaviour
 
         var goldVal = new GUIStyle(GUI.skin.label) { fontSize = 13 };
         goldVal.normal.textColor = Color.white;
-        GUI.Label(new Rect(imgX + 40f, goldY + 4f, imgW - 40f, 18f), gold.ToString("N0"), goldVal);
+        GUI.Label(new Rect(imgX + 40f, goldY + 4f, imgW - 40f - 52f, 18f), gold.ToString("N0"), goldVal);
+
+        // Equipped Projectile box (arrows / thrown), same 46 px size as the equip slots.
+        DrawEquippedProjectileBox(imgX + imgW - 46f, goldY, 46f);
+    }
+
+    // Shows the ammo the equipped ranged weapon uses, or the equipped thrown weapon,
+    // with its remaining count — mirroring the equipment-slot boxes.
+    void DrawEquippedProjectileBox(float x, float y, float size)
+    {
+        var inv = InventorySystem.Instance;
+        LootItem ammo = null;
+        int count = 0;
+        if (inv != null)
+        {
+            var thrown = inv.GetEquippedThrown();
+            var mh     = inv.GetEquippedLoot(EquipSlot.MainHand);
+            if (thrown != null) { ammo = thrown; count = inv.GetCount(thrown); }
+            else if (mh != null && mh.weaponCategory == WeaponCategory.Ranged)
+            { ammo = inv.GetEquippedAmmoItem(); count = inv.EquippedAmmoCount(); }
+        }
+
+        var r = new Rect(x, y, size, size);
+        GUI.color = ammo != null ? RaritySlotTint(ammo.rarity) : new Color(0.12f, 0.12f, 0.12f, 0.9f);
+        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.color = ammo != null ? RarityColor(ammo.rarity) : new Color(1f, 1f, 1f, 0.30f);
+        DrawBorder(r, 1f);
+        GUI.color = Color.white;
+
+        if (ammo != null)
+        {
+            Texture icon = ItemIcon(ammo);
+            if (icon != null)
+                GUI.DrawTexture(new Rect(x + 2f, y + 2f, size - 4f, size - 4f), icon, ScaleMode.ScaleToFit);
+            else
+            {
+                var ns = new GUIStyle(GUI.skin.label) { fontSize = 8, wordWrap = true, alignment = TextAnchor.MiddleCenter };
+                GUI.Label(new Rect(x + 1f, y + 1f, size - 2f, size - 2f), Truncate(ammo.ItemName, 9), ns);
+            }
+            if (count > 0)
+            {
+                var cs = new GUIStyle(GUI.skin.label) { fontSize = 11, fontStyle = FontStyle.Bold, alignment = TextAnchor.LowerRight };
+                cs.normal.textColor = Color.white;
+                GUI.Label(new Rect(x, y, size - 3f, size - 2f), count.ToString(), cs);
+            }
+            if (ammo != null && r.Contains(Event.current.mousePosition)) _invHover = ammo;
+        }
     }
 
     // ── Right half: inventory grid + detail pane ──────────────────────────────
@@ -1256,51 +1302,73 @@ public class GameUI : MonoBehaviour
             return;
         }
 
+        var book = SpellbookSystem.Instance;
+        SpellData[] equippedSlots = new SpellData[SpellbookSystem.SlotCount];
+        if (book != null)
+            for (int s = 0; s < SpellbookSystem.SlotCount; s++)
+                equippedSlots[s] = book.GetSlot(s);
+
+        // ── Equipped sidebar (slots 1-4) ──
+        const float sidebarW = 160f, gap = 12f;
+        var sideHeader = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 14 };
+        GUI.Label(new Rect(x, listY, sidebarW, 22f), "Equipped", sideHeader);
+        for (int s = 0; s < SpellbookSystem.SlotCount; s++)
+        {
+            float sy = listY + 26f + s * 40f;
+            GUI.color = new Color(0f, 0f, 0f, 0.3f);
+            GUI.DrawTexture(new Rect(x, sy, sidebarW, 36f), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            var numStyle = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 15 };
+            numStyle.normal.textColor = new Color(1f, 0.85f, 0.3f);
+            GUI.Label(new Rect(x + 8f, sy + 8f, 20f, 20f), (s + 1).ToString(), numStyle);
+
+            var nm = new GUIStyle(GUI.skin.label) { fontSize = 12 };
+            GUI.Label(new Rect(x + 30f, sy + 8f, sidebarW - 64f, 20f),
+                equippedSlots[s] != null ? equippedSlots[s].spellName : "—", nm);
+
+            if (equippedSlots[s] != null && GUI.Button(new Rect(x + sidebarW - 26f, sy + 6f, 22f, 24f), "×"))
+                book?.SetSlot(s, null);
+        }
+
+        // ── Known-spell list (assign to slots via 1-4 buttons) ──
+        float listX = x + sidebarW + gap;
+        float listW = w - sidebarW - gap;
         const float rowH = 52f;
-        float totalH = Mathf.Max(spells.Count * rowH, listH);
-        var viewport = new Rect(x, listY, w, listH);
-        var content  = new Rect(0, 0, w - 20f, totalH);
+        var viewport = new Rect(listX, listY, listW, listH);
+        var content  = new Rect(0, 0, listW - 20f, Mathf.Max(spells.Count * rowH, listH));
         _scrollSpells = GUI.BeginScrollView(viewport, _scrollSpells, content);
 
-        var nameStyle = new GUIStyle(GUI.skin.label)
-            { fontStyle = FontStyle.Bold, fontSize = 15 };
-        var descStyle = new GUIStyle(GUI.skin.label)
-            { fontSize = 12, wordWrap = true };
+        var nameStyle = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 15 };
+        var descStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, wordWrap = true };
         descStyle.normal.textColor = new Color(0.75f, 0.75f, 0.75f);
-
-        // Slot assignments — which hotbar slots hold which spells.
-        SpellData[] equippedSlots = new SpellData[SpellbookSystem.SlotCount];
-        if (SpellbookSystem.Instance != null)
-            for (int s = 0; s < SpellbookSystem.SlotCount; s++)
-                equippedSlots[s] = SpellbookSystem.Instance.GetSlot(s);
 
         for (int i = 0; i < spells.Count; i++)
         {
-            var    spell = spells[i];
-            float  iy    = i * rowH;
-            float  cw    = content.width;
+            var   spell = spells[i];
+            float iy    = i * rowH;
+            float cw    = content.width;
 
-            // Row background
             GUI.color = new Color(0f, 0f, 0f, 0.25f);
             GUI.DrawTexture(new Rect(0, iy, cw, rowH - 3f), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
-            GUI.Label(new Rect(8f, iy + 6f, cw - 100f, 22f), spell.spellName, nameStyle);
-
+            GUI.Label(new Rect(8f, iy + 6f, cw - 150f, 22f), spell.spellName, nameStyle);
             if (!string.IsNullOrEmpty(spell.description))
-                GUI.Label(new Rect(8f, iy + 26f, cw - 100f, 20f), spell.description, descStyle);
+                GUI.Label(new Rect(8f, iy + 26f, cw - 150f, 20f), spell.description, descStyle);
 
-            // Show which hotbar slot this spell is on (1-4), if any.
-            string slotHint = "";
-            for (int s = 0; s < equippedSlots.Length; s++)
-                if (equippedSlots[s] == spell) { slotHint = $"[{s + 1}]"; break; }
-
-            if (!string.IsNullOrEmpty(slotHint))
+            // Assign buttons 1-4; the slot currently holding this spell is highlighted.
+            for (int s = 0; s < SpellbookSystem.SlotCount; s++)
             {
-                var slotStyle = new GUIStyle(GUI.skin.label)
-                    { alignment = TextAnchor.MiddleRight, fontSize = 13, fontStyle = FontStyle.Bold };
-                slotStyle.normal.textColor = new Color(1f, 0.85f, 0.3f);
-                GUI.Label(new Rect(cw - 96f, iy + 6f, 88f, 22f), $"Slot {slotHint}", slotStyle);
+                bool on = equippedSlots[s] == spell;
+                var prev = GUI.backgroundColor;
+                if (on) GUI.backgroundColor = new Color(1f, 0.85f, 0.3f);
+                if (GUI.Button(new Rect(cw - 140f + s * 34f, iy + 12f, 30f, 28f), (s + 1).ToString()))
+                {
+                    book?.SetSlot(s, on ? null : spell);
+                    equippedSlots[s] = on ? null : spell;
+                }
+                GUI.backgroundColor = prev;
             }
         }
 

@@ -57,6 +57,7 @@ public static class SkillTreeBuilder
         made += Special("Skill_Efficiency",    "Efficiency",     "Spells cost less mana.",          20, s => s.manaCostReductionPercentPerRank  = 2f);
         made += Special("Skill_QuickStudy",    "Quick Study",    "Gain more XP.",                   10, s => s.xpGainPercentPerRank             = 5f);
         made += Special("Skill_Prospector",    "Prospector",     "Find more gold.",                 10, s => s.goldFindPercentPerRank           = 10f);
+        made += Special("Skill_TreasureHunter", "Treasure Hunter","Find loot more often, and rarer.",20, s => s.lootRarityBonusPerRank          = 5f);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();

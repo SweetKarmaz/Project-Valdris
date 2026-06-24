@@ -76,6 +76,9 @@ public static class QuestTooltip
         if (q.spellRewards != null)
             foreach (var s in q.spellRewards)
                 if (s != null) sb.Append("Spell: ").Append(s.name).Append('\n');
+        if (q.skillRewards != null)
+            foreach (var sk in q.skillRewards)
+                if (sk != null) sb.Append("Skill: ").Append(sk.skillName).Append('\n');
         return sb.ToString().TrimEnd();
     }
 }

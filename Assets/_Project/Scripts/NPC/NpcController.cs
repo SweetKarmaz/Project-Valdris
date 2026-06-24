@@ -495,6 +495,7 @@ public class NpcController : MonoBehaviour, IDamageable
     void CheckHostilePerception()
     {
         if (_inCombat || IsDead) return;
+        if (Zone.PlayerInSafeZone) return;   // no new aggro while the player is in a safe zone
         if (definition == null || !definition.isAggressive) return;
         if (CanSeePlayer()) EnterCombat();
     }
@@ -601,6 +602,7 @@ public class NpcController : MonoBehaviour, IDamageable
     void CheckCorruptionHostility()
     {
         if (_inCombat || !reactsToCorruption || IsDead) return;
+        if (Zone.PlayerInSafeZone) return;   // safe zone suppresses corruption aggro too
         if (GetCorruptionStance() != CorruptionStance.Hostile) return;
 
         if (CanSeePlayer())

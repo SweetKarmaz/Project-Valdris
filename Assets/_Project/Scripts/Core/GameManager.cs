@@ -61,6 +61,7 @@ public class GameManager : MonoBehaviour
         Keyring.Instance.Clear();
         CutsceneControl.ForceClear();
         WorldStateSystem.Instance?.RestoreState(null);   // wipe story flags for a fresh run
+        QuickUseSystem.Instance?.Clear();
     }
 
     // Called by the intro cinematic when it finishes or is skipped.

@@ -10,14 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2192c3ce5ec82d14189e2f21448b17b1, type: 3}
-  m_Name: Skill_DetectCorruption
-  m_EditorClassIdentifier: 
-  skillName: Detect Corruption
+  m_Name: Skill_TreasureHunter
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillName: Treasure Hunter
   icon: {fileID: 0}
-  description: Attune your senses to the taint. Can reveal hidden corruption on nearby
-    creatures. No mana  cost.
+  description: Find loot more often, and rarer.
   pointCost: 1
-  maxRank: 1
+  maxRank: 20
   prerequisites: []
   modifiers: []
   spellModifiers: []
@@ -27,4 +26,4 @@ MonoBehaviour:
   manaCostReductionPercentPerRank: 0
   xpGainPercentPerRank: 0
   goldFindPercentPerRank: 0
-  lootRarityBonusPerRank: 0
+  lootRarityBonusPerRank: 5

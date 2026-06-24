@@ -199,6 +199,7 @@ public class QuestPopupSystem : MonoBehaviour
         if (q.goldReward > 0) lines++;
         if (q.statPointReward > 0) lines++;
         if (q.spellRewards != null) lines += q.spellRewards.Count;
+        if (q.skillRewards != null) lines += q.skillRewards.Count;
         int itemRows = q.itemRewards != null
             ? Mathf.CeilToInt(CountNonNull(q.itemRewards) / 3f) : 0;
         return 28f + lines * 24f + itemRows * 34f + 8f;
@@ -216,6 +217,9 @@ public class QuestPopupSystem : MonoBehaviour
         if (q.spellRewards != null)
             foreach (var s in q.spellRewards)
                 if (s != null) { GUI.Label(new Rect(12f, iy, w - 12f, 22f), $"Spell: {s.name}", _rewardLine); iy += 24f; }
+        if (q.skillRewards != null)
+            foreach (var sk in q.skillRewards)
+                if (sk != null) { GUI.Label(new Rect(12f, iy, w - 12f, 22f), $"Skill: {sk.skillName}", _rewardLine); iy += 24f; }
 
         // Item rewards as rarity-coloured slots, 3 per row, hover for the tooltip.
         if (q.itemRewards != null)

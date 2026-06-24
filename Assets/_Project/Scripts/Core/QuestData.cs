@@ -47,6 +47,8 @@ public class QuestData : ScriptableObject
     [Tooltip("LootItem prefabs (from Assets/_Project/Prefabs/Loot/) granted on turn-in.")]
     public List<LootItem> itemRewards = new();
     public List<SpellData> spellRewards = new();
+    [Tooltip("Skills unlocked (granted a rank) on turn-in, e.g. Detect Corruption.")]
+    public List<SkillData> skillRewards = new();
 
     [Header("Story")]
     [Tooltip("World flags set to true when the player accepts this quest.")]

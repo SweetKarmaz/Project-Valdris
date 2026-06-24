@@ -56,11 +56,18 @@ public static class LootDropTable
             : t.guaranteedMin;
         for (int i = 0; i < guaranteed; i++) result.Add(t.floor);
 
+        // Magic find: a player's loot-rarity skill bonus widens the rarity bands,
+        // so bonus rolls yield items more often AND skew rarer. Only scales the
+        // bonus-roll chances — the guaranteed floor items are untouched. Bounded by
+        // the tier's base percentages, so it can never guarantee top rarities.
+        float scale = 1f + Mathf.Max(0f, SkillSystem.Instance != null
+            ? SkillSystem.Instance.LootRarityBonus() : 0f) / 100f;
+
         // Each bonus roll: a d100 mapped from the top of the range downward.
-        float legCut  = 100f - t.legendaryPct;
-        float epicCut = legCut  - t.epicPct;
-        float rareCut = epicCut - t.rarePct;
-        float uncCut  = rareCut - t.uncommonPct;
+        float legCut  = 100f - t.legendaryPct * scale;
+        float epicCut = legCut  - t.epicPct   * scale;
+        float rareCut = epicCut - t.rarePct   * scale;
+        float uncCut  = rareCut - t.uncommonPct * scale;
         for (int i = 0; i < t.bonusRolls; i++)
         {
             float d = Random.Range(1, 101); // 1..100 inclusive

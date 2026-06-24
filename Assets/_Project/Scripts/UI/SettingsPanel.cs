@@ -17,6 +17,10 @@ public static class SettingsPanel
     static bool _showPopup;
     static System.Action _pendingBack;      // stored so the popup can invoke it
 
+    static bool _inControls;                // showing the keybinds sub-screen
+    static InputManager.Rebindable _rebindingEntry;  // row currently listening for a key
+    static Vector2 _controlsScroll;
+
     // ── Entry point ───────────────────────────────────────────────────────────
 
     // Call this whenever the player navigates INTO the settings screen.
@@ -25,6 +29,8 @@ public static class SettingsPanel
         _snapshot  = GameSettings.Capture();
         _isDirty   = false;
         _showPopup = false;
+        _inControls = false;
+        _rebindingEntry = null;
     }
 
     // Call from OnGUI every frame while showing the settings screen.
@@ -32,6 +38,8 @@ public static class SettingsPanel
     {
         // Sync master volume live so the player can hear changes immediately.
         AudioListener.volume = GameSettings.MasterVolume;
+
+        if (_inControls) { DrawControls(); return; }
 
         if (_showPopup)
         {
@@ -111,8 +119,85 @@ public static class SettingsPanel
             bool prev = GameSettings.HeadBobEnabled;
             bool next = GUI.Toggle(new Rect(x + 4f, y, 480f, 34f), prev, "  Head Bob");
             if (next != prev) { GameSettings.HeadBobEnabled = next; _isDirty = true; }
-            y += 40f;
+            y += 44f;
         }
+
+        // ── Controls ────────────────────────────────────────────────────────────
+        SectionHeader("Controls", x, ref y);
+        if (GUI.Button(new Rect(x, y, 240f, 38f), "Configure Keybinds…")) _inControls = true;
+        y += 44f;
+    }
+
+    // ── Controls / keybind sub-screen ─────────────────────────────────────────
+
+    static void DrawControls()
+    {
+        var centred = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, richText = true };
+        GUI.Label(new Rect(0, 30, Screen.width, 50), "<size=30><b>Controls</b></size>", centred);
+
+        var im = InputManager.Instance;
+        float w = 560f;
+        float x = (Screen.width - w) / 2f;
+        float top = 100f;
+        float listH = Screen.height - top - 110f;
+
+        if (im == null || im.Rebindables == null)
+        {
+            GUI.Label(new Rect(x, top, w, 30f), "Input system not ready.");
+        }
+        else
+        {
+            const float rowH = 38f;
+            var view    = new Rect(x, top, w, listH);
+            var content = new Rect(0, 0, w - 20f, im.Rebindables.Count * rowH);
+            _controlsScroll = GUI.BeginScrollView(view, _controlsScroll, content);
+
+            var nameStyle = new GUIStyle(GUI.skin.label) { fontSize = 16 };
+            var keyStyle  = new GUIStyle(GUI.skin.label) { fontSize = 15, alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold };
+
+            for (int i = 0; i < im.Rebindables.Count; i++)
+            {
+                var r = im.Rebindables[i];
+                float ry = i * rowH;
+                GUI.Label(new Rect(0, ry, 220f, rowH), r.Label, nameStyle);
+
+                bool listening = _rebindingEntry == r;
+                if (listening)
+                {
+                    var hint = new GUIStyle(GUI.skin.label)
+                        { fontSize = 14, alignment = TextAnchor.MiddleCenter,
+                          normal = { textColor = new Color(1f, 0.85f, 0.3f) } };
+                    GUI.Label(new Rect(230f, ry, content.width - 240f, rowH), "Press a key…  (Esc to cancel)", hint);
+                }
+                else
+                {
+                    GUI.Label(new Rect(230f, ry, content.width - 350f, rowH), InputManager.DisplayFor(r), keyStyle);
+
+                    GUI.enabled = !im.IsRebinding;
+                    if (GUI.Button(new Rect(content.width - 100f, ry + 3f, 96f, rowH - 8f), "Rebind"))
+                    {
+                        _rebindingEntry = r;
+                        im.StartRebind(r, _ => _rebindingEntry = null);
+                    }
+                    GUI.enabled = true;
+                }
+            }
+
+            GUI.EndScrollView();
+        }
+
+        // Bottom buttons.
+        const float BW = 170f, BH = 46f, GAP = 14f;
+        float totalW = BW * 2 + GAP;
+        float bx = (Screen.width - totalW) / 2f;
+        float by = Screen.height - 80f;
+
+        GUI.enabled = im == null || !im.IsRebinding;
+        if (GUI.Button(new Rect(bx, by, BW, BH), "Reset to Default"))
+            im?.ResetBindingsToDefault();
+        if (GUI.Button(new Rect(bx + BW + GAP, by, BW, BH), "Back"))
+            _inControls = false;
+        GUI.enabled = true;
     }
 
     // ── Button row ────────────────────────────────────────────────────────────

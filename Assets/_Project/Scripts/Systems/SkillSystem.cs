@@ -51,6 +51,15 @@ public class SkillSystem : MonoBehaviour
         return true;
     }
 
+    // Force-grant a skill rank without spending points or checking prerequisites
+    // (used by quest rewards, e.g. unlocking Detect Corruption).
+    public void GrantSkill(SkillData skill, int ranks = 1)
+    {
+        if (skill == null) return;
+        _ranks[skill] = Mathf.Min(MaxRankOf(skill), GetRank(skill) + Mathf.Max(1, ranks));
+        OnSkillUnlocked?.Invoke(skill);
+    }
+
     // Fresh start (New Game).
     public void ClearAll() => _ranks.Clear();
 

@@ -325,6 +325,37 @@ public class InventorySystem : MonoBehaviour
         return false;
     }
 
+    // Total count of a projectile type across the inventory (HUD ammo readout).
+    public int CountProjectiles(ProjectileType type)
+    {
+        if (type == ProjectileType.None) return 0;
+        int n = 0;
+        foreach (var slot in _inventory.Slots)
+            if (slot.item != null && slot.item.itemType == LootItemType.Projectile
+                && slot.item.projectileType == type)
+                n += slot.count;
+        return n;
+    }
+
+    // The ammo LootItem feeding the equipped ranged weapon (for the HUD icon), or null.
+    public LootItem GetEquippedAmmoItem()
+    {
+        var w = GetEquippedLoot(EquipSlot.MainHand);
+        if (w == null || w.weaponCategory != WeaponCategory.Ranged) return null;
+        foreach (var slot in _inventory.Slots)
+            if (slot.item != null && slot.item.itemType == LootItemType.Projectile
+                && slot.item.projectileType == w.requiredProjectile)
+                return slot.item;
+        return null;
+    }
+
+    public int EquippedAmmoCount()
+    {
+        var w = GetEquippedLoot(EquipSlot.MainHand);
+        return (w != null && w.weaponCategory == WeaponCategory.Ranged)
+            ? CountProjectiles(w.requiredProjectile) : 0;
+    }
+
     public bool ConsumeProjectile(ProjectileType type)
     {
         if (type == ProjectileType.None) return true;

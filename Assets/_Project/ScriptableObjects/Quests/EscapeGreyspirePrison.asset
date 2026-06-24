@@ -10,28 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 80e7a1cf118b93c4e8c4f31c916454f4, type: 3}
-  m_Name: KillTheMadPrisoner
+  m_Name: EscapeGreyspirePrison
   m_EditorClassIdentifier: Assembly-CSharp::QuestData
-  title: Kill The Mad Prisoner
-  description: 'This prisoner has gone mad. It is best to put him out of his misery
-    before he can do real damage. You have been given a stick to defend yourself.
-    Hit the TAB key or the I key to open your inventory, and drag the stick to your
-    main hand. Exit the inventory, and hit the left mouse button to attack. '
+  title: Escape Greyspire Prison
+  description: I just overheard someone talking about me, and it doesn't sound pleasant.
+    I best get out of this prison as soon as I can.
   requiredWorldFlags: []
   triggerType: 0
   objectives:
-  - description: Tutorial - Kill The Mad Prisoner
-    type: 0
-    targetId: GreyspireMadPrisoner
-    requiredCount: 1
-  itemGrantsOnAccept:
-  - {fileID: 5998924062661910628, guid: 5fedfac3b41da934cbe7118bc48c2fa5, type: 3}
+  - description: 
+    type: 3
+    targetId: 
+    requiredCount: 0
+  itemGrantsOnAccept: []
   autoComplete: 1
   turnInNpcSaveId: 
   turnInDialogue: 
-  completionText: 
+  completionText: I have escaped Greyspire Prison.
   goldReward: 0
-  xpReward: 100
+  xpReward: 150
   statPointReward: 0
   corruptionReward: 0
   itemRewards: []

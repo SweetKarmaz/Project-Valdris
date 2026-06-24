@@ -246,14 +246,17 @@ public class PlayerStats : MonoBehaviour, IDamageable
         if (_regenTimer < RegenInterval) return;
         _regenTimer -= RegenInterval;
 
-        float hr = HealthRegen;
+        // Safe/rest zones triple regeneration while the player is inside.
+        float zoneMult = Zone.PlayerInSafeZone ? 3f : 1f;
+
+        float hr = HealthRegen * zoneMult;
         if (hr > 0f && CurrentHealth < MaxHealth)
         {
             CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + hr);
             HUDController.Instance?.UpdateHealth(CurrentHealth, MaxHealth);
         }
 
-        float mr = ManaRegen;
+        float mr = ManaRegen * zoneMult;
         if (mr > 0f && CurrentMana < MaxMana)
         {
             CurrentMana = Mathf.Min(MaxMana, CurrentMana + mr);

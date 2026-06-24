@@ -55,20 +55,46 @@ the corresponding folders/GUIDs will be missing:
 
 ## Project layout (`Assets/_Project`)
 
-- `Scripts/` — gameplay systems: `Core/` (save, scene state, combat, damage,
-  buffs), `Systems/` (inventory, quests, skills, spells), `Player/`, `NPC/`,
-  `Items/`, `UI/`, `World/`, `Camera/`, `Enemies/`.
-- `Editor/` — custom tools under **Tools → Valdris** (loot/armor builders,
-  container builder, HDRP material fixers, inventory viewer, NPC presets).
+- `Scripts/` — gameplay systems: `Core/` (save/scene-state, combat, damage,
+  buffs, dialogue data, quests), `Systems/` (inventory, quests, skills, spells,
+  XP/leveling, dialogue, input, quick-use, world flags), `Player/`, `NPC/`,
+  `Items/`, `UI/`, `World/`, `Levels/` (scene managers, zones), `Events/`
+  (scripted-event framework), `Camera/`, `Characters/`, `Enemies/`.
+- `Editor/` — custom tools under **Tools → Valdris** (see below).
 - `Scenes/`, `ScriptableObjects/`, `Prefabs/`, `Data/`.
+
+### Key gameplay systems
+
+- **Save / scene-state** — per-save snapshots; revisiting a scene restores its
+  NPCs/loot/doors to that save's point in time.
+- **Leveling & skills** — polynomial XP curve (cap 999), level-ups grant skill
+  points (and an attribute point every 5th level); ranked skill tree with
+  per-rank caps, weapon masteries, and effects like lifesteal / mana-cost /
+  XP & gold find / loot rarity. Stats, regen, crit, and resistances on the
+  Character tab.
+- **Quests** — branching objectives (kill / talk / reach-zone / interact /
+  deliver), accept & complete popups, auto-completing tutorial quests, rewards
+  (XP/gold/items/spells/skills/attribute points).
+- **Dialogue** — branching node-graph conversations with world-flag gating;
+  forced and overheard modes.
+- **Scripted events** — trigger (proximity / volume / door / talk / manual) +
+  flag gate + a sequence of steps (lock player, dialogue, give quest, move/escort,
+  doors, make NPC hostile, etc.); plus `GuardAlertZone`.
+- **Zones** — editor-only trigger volumes for named areas, first-entry XP,
+  quest triggers, flags, safe/rest zones, aura buffs, and flag-gated blockers.
+- **World** — 60-minute day/night cycle with a saved Day/Hour clock, corruption
+  meter, HDRP grass/rain.
+- **Controls** — Input System with in-game key rebinding (Settings → Controls).
 
 ### Notable Editor tools (`Tools → Valdris`)
 
-- **Build Loot Containers** — copy chest/sack/bag prefabs into
-  `Prefabs/LootContainers/` and wire up the `LootContainer` component.
-- **Fix Loot Container Materials (HDRP)** / **Fix Missing Container Materials**.
-- **Build Armor Loot Prefabs**, **Rebuild Loot Registry**.
-- **Inventory Viewer** — inspect/edit the player's runtime inventory in play mode.
+- **Loot** — Build Loot Containers, Build Armor Loot Prefabs, Rebuild Loot
+  Registry, HDRP material fixers, Inventory Viewer (edit runtime inventory in play).
+- **Build Default Skills** — generates/registers the ranked skill assets.
+- **Build Keys Ring Item** — builds the "Keys" keyring token.
+- **Scene** — Setup Scene For Save System, Create Default Scene State, and the
+  Greyspire builders (blockout, dressing, bake NavMesh) plus the VaelCrossing
+  world builders (terrain/water/foliage/grass/sky/etc.).
 
 ---
 

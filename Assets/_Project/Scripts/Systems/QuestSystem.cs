@@ -180,6 +180,9 @@ public class QuestSystem : MonoBehaviour
         if (quest.spellRewards != null)
             foreach (var spell in quest.spellRewards)
                 if (spell != null) SpellbookSystem.Instance?.LearnSpell(spell);
+        if (quest.skillRewards != null)
+            foreach (var skill in quest.skillRewards)
+                if (skill != null) SkillSystem.Instance?.GrantSkill(skill);
 
         if (quest.setsWorldFlagsOnComplete != null)
             foreach (string flag in quest.setsWorldFlagsOnComplete)
