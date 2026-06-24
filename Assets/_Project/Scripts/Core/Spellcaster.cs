@@ -137,8 +137,11 @@ public class Spellcaster : MonoBehaviour
     public float EffectiveManaCost(SpellData spell)
     {
         if (!_isPlayer) return 0f;
-        return Mathf.Max(0f, spell.manaCost
-            * SpellModifierMultiplier(spell, m => m.manaCostPercent));
+        float cost = spell.manaCost * SpellModifierMultiplier(spell, m => m.manaCostPercent);
+        // Skill-based mana cost reduction (capped at 90% in SkillSystem).
+        if (SkillSystem.Instance != null)
+            cost *= 1f - SkillSystem.Instance.ManaCostReductionPercent() / 100f;
+        return Mathf.Max(0f, cost);
     }
 
     public float EffectiveCooldown(SpellData spell)

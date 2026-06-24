@@ -94,7 +94,11 @@ public enum StatType
     IceResist,
     LightningResist,
     HolyResist,
-    CorruptionResist
+    CorruptionResist,
+    // Resource regeneration per second (driven by attributes/gear/skills, not
+    // directly investable). Appended last to keep existing serialized values.
+    HealthRegen,
+    ManaRegen
 }
 
 // Crowd-control categories. Characters can be immune or resilient per type.

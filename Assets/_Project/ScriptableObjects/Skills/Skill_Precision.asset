@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2192c3ce5ec82d14189e2f21448b17b1, type: 3}
+  m_Name: Skill_Precision
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillName: Precision
+  icon: {fileID: 0}
+  description: Increases Physical Crit chance.
+  pointCost: 1
+  maxRank: 20
+  prerequisites: []
+  modifiers:
+  - stat: 13
+    mode: 0
+    amount: 0.5
+  spellModifiers: []
+  masteryWeaponType: 0
+  attackDamagePercentPerRank: 0
+  lifestealPercentPerRank: 0
+  manaCostReductionPercentPerRank: 0
+  xpGainPercentPerRank: 0
+  goldFindPercentPerRank: 0
+  lootRarityBonusPerRank: 0

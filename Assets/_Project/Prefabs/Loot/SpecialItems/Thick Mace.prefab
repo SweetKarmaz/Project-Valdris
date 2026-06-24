@@ -88,6 +88,7 @@ MonoBehaviour:
   itemType: 0
   isKeyRing: 0
   weaponCategory: 0
+  weaponType: 4
   weaponDamage: 20
   weaponRange: 1.5
   attackSpeedModifier: 0

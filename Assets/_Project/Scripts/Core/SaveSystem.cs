@@ -13,7 +13,9 @@ public class SaveData
     // Progression
     public int playerLevel;
     public int unspentSkillPoints;
-    public int currentXP;
+    public int unspentAttributePoints;
+    public long currentXP;
+    public PlayerStats.AttributeSave attributes;
     public List<string> unlockedSkills;
     public List<string> knownSpells;
     public List<string> spellSlots;
@@ -218,6 +220,8 @@ public class SaveSystem : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null) { Debug.LogWarning("Loaded scene has no Player to restore."); return; }
         player.GetComponent<CharacterBuffs>()?.RestoreState(data.appliedBuffs, database);
+        // Restore allocated attributes BEFORE reviving, so max health/mana reflect them.
+        player.GetComponent<PlayerStats>()?.RestoreAttributes(data.attributes);
         // Vitals aren't persisted — restore the player to full health/mana so a save
         // made (or loaded) after death doesn't spawn the player dead.
         player.GetComponent<PlayerStats>()?.ReviveFull();
@@ -253,6 +257,7 @@ public class SaveSystem : MonoBehaviour
         {
             playerLevel = LevelSystem.Instance != null ? LevelSystem.Instance.CurrentLevel : 1,
             unspentSkillPoints = LevelSystem.Instance != null ? LevelSystem.Instance.UnspentSkillPoints : 0,
+            unspentAttributePoints = LevelSystem.Instance != null ? LevelSystem.Instance.UnspentAttributePoints : 0,
             currentXP = XPSystem.Instance != null ? XPSystem.Instance.CurrentXP : 0,
             unlockedSkills = SkillSystem.Instance?.CaptureState() ?? new List<string>(),
             knownSpells = SpellbookSystem.Instance?.CaptureKnown() ?? new List<string>(),
@@ -276,6 +281,7 @@ public class SaveSystem : MonoBehaviour
             data.playerPosition      = player.transform.position;
             data.playerRotationEuler = player.transform.eulerAngles;
             data.appliedBuffs        = player.GetComponent<CharacterBuffs>()?.CaptureState() ?? new List<SavedBuff>();
+            data.attributes          = player.GetComponent<PlayerStats>()?.CaptureAttributes();
         }
         var fp = Camera.main != null ? Camera.main.GetComponent<FirstPersonCamera>() : null;
         if (fp != null) data.cameraPitch = fp.Pitch;
@@ -287,7 +293,7 @@ public class SaveSystem : MonoBehaviour
 
     private void RestoreGlobalState(SaveData data)
     {
-        LevelSystem.Instance?.RestoreState(data.playerLevel, data.unspentSkillPoints);
+        LevelSystem.Instance?.RestoreState(data.playerLevel, data.unspentSkillPoints, data.unspentAttributePoints);
         XPSystem.Instance?.RestoreState(data.currentXP);
         SkillSystem.Instance?.RestoreState(data.unlockedSkills, database);
         SpellbookSystem.Instance?.RestoreState(data.knownSpells, data.spellSlots, database);

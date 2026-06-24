@@ -41,6 +41,22 @@ public static class LootClassifier
     public static bool IsWeapon(GenCategory c) =>
         c != GenCategory.None && c <= GenCategory.Thrown; // Shield is armor, see below
 
+    // Weapon archetype for mastery skills. Sceptre maps to Staff (magical), generic
+    // Ranged to Bow. Used to fill in WeaponType when a base prefab leaves it unset.
+    public static WeaponType WeaponTypeFor(GenCategory c) => c switch
+    {
+        GenCategory.AxeOneHand or GenCategory.AxeTwoHand     => WeaponType.Axe,
+        GenCategory.MaceOneHand or GenCategory.MaceTwoHand   => WeaponType.Mace,
+        GenCategory.SwordOneHand or GenCategory.SwordTwoHand => WeaponType.Sword,
+        GenCategory.Dagger                                   => WeaponType.Dagger,
+        GenCategory.Spear                                    => WeaponType.Polearm,
+        GenCategory.Staff                                    => WeaponType.Staff,
+        GenCategory.Sceptre                                  => WeaponType.Staff,
+        GenCategory.Ranged                                   => WeaponType.Bow,
+        GenCategory.Thrown                                   => WeaponType.Thrown,
+        _                                                    => WeaponType.Other,
+    };
+
     // path: full asset path, e.g. ".../Loot/Weapons/Axes/GreatAxe_01.prefab".
     public static GenCategory ClassifyByPath(string path, string prefabName)
     {

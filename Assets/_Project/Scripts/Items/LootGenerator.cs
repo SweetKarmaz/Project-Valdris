@@ -79,6 +79,7 @@ public static class LootGenerator
             rarity         = rarity,
             isWeapon       = isWeapon,
             isTwoHanded    = LootClassifier.IsTwoHandedCategory(cat),
+            category       = cat,
         };
         if (isWeapon) roll.weaponDamage = primary;
         else          roll.armorValue   = primary;
@@ -149,12 +150,15 @@ public static class LootGenerator
 
         bool combat = chosen.pool == 2;
         bool resist = chosen.pool == 3;
+        bool regen  = chosen.pool == 5;
         // Damage/speed/defense scale as a true Percent; crit stats are stored as
         // Flat percentage points (that's how PlayerStats reads them).
         bool percentMode = combat && !IsCritStat(chosen.stat);
 
         float amount = chosen.pool == 0
             ? AttributeMagnitude(rarity) * sign                 // attributes are fixed steps
+            : regen
+            ? RegenMagnitude(rarity) * sign                     // regen is a fixed fractional step
             : Mathf.Round(Magnitude(chosen.pool, rarity)) * sign;
 
         roll.statModifiers.Add(new StatModifier
@@ -166,8 +170,9 @@ public static class LootGenerator
         named.Add((chosen.word, Mathf.Abs(amount)));
 
         string verb = negative ? "Reduces" : "Increases";
-        string unit = combat ? "%" : resist ? "% resistance" : "";
-        descs.Add($"{verb} {chosen.word} by {Mathf.Abs(amount):0}{unit}.");
+        string unit = combat ? "%" : resist ? "% resistance" : regen ? " per 5s" : "";
+        string amt  = regen ? Mathf.Abs(amount).ToString("0.0") : Mathf.Abs(amount).ToString("0");
+        descs.Add($"{verb} {chosen.word} by {amt}{unit}.");
     }
 
     static List<Cand> Candidates(bool isWeapon, HashSet<StatType> used, HashSet<DamageType> usedRider)
@@ -187,6 +192,9 @@ public static class LootGenerator
         // Vitals (Flat)
         Add(StatType.MaxHealth,    1, "Health",    -1);
         Add(StatType.MaxMana,      1, "Mana",       1);
+        // Regen (Flat, rarity-fixed amount — see RegenMagnitude)
+        Add(StatType.HealthRegen,  5, "Renewal",     -1);
+        Add(StatType.ManaRegen,    5, "Restoration",  1);
         // Combat (Percent)
         Add(StatType.AttackDamage,       2, "Power",     -1);
         Add(StatType.AttackSpeed,        2, "Speed",     -1);
@@ -243,6 +251,16 @@ public static class LootGenerator
         _                    => 1f,   // Uncommon / Rare
     };
 
+    // Health/Mana regen per 5s, fixed per rarity (Common can't roll affixes).
+    static float RegenMagnitude(ItemRarity r) => r switch
+    {
+        ItemRarity.Uncommon  => 0.2f,
+        ItemRarity.Rare      => 0.4f,
+        ItemRarity.Epic      => 0.6f,
+        ItemRarity.Legendary => 1.0f,
+        _                    => 0f,
+    };
+
     // pool: 1 vitals, 2 combat, 3 resist, 4 rider. Returns a rolled magnitude.
     static float Magnitude(byte pool, ItemRarity r)
     {
@@ -289,6 +307,7 @@ public static class LootGenerator
         StatType.SpellAcuity        => 60f,   // per attribute point
         StatType.MaxHealth          => 2f,
         StatType.MaxMana            => 2.5f,
+        StatType.HealthRegen or StatType.ManaRegen => 60f,   // per 5s point — scarce, valuable
         StatType.AttackDamage       => 12f,   // per %
         StatType.AttackSpeed        => 15f,
         StatType.Defense            => 8f,

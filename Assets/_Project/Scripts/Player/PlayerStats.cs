@@ -29,13 +29,23 @@ public class PlayerStats : MonoBehaviour, IDamageable
     public float baseAttackDamage = 5f;
     public float baseAttackSpeed = 1f;
     public float baseDefense = 0f;
+    [Tooltip("Base health/mana regenerated per second before attribute scaling.")]
+    public float baseHealthRegen = 0f;
+    public float baseManaRegen = 0f;
 
     [Header("Attribute Scaling")]
     public float healthPerConstitution = 5f;
+    [Tooltip("Health regenerated per second, per point of Constitution.")]
+    public float healthRegenPerConstitution = 0.1f;
     public float manaPerIntelligence = 3f;
+    [Tooltip("Mana regenerated per second, per point of Intelligence.")]
+    public float manaRegenPerIntelligence = 0.1f;
     public float manaPerWisdom = 2f;
-    public float damagePerStrength = 1f;
+    public float damagePerStrength = 2f;
+    [Tooltip("Defense gained per point of Strength.")]
+    public float defensePerStrength = 0.25f;
     public float attackSpeedPerDexterity = 0.01f;
+    [Tooltip("Unused — Defense now scales with Strength (defensePerStrength). Kept for reference.")]
     public float defensePerDexterity = 0.25f;
     [Tooltip("Spell damage multiplier gained per point of Spell Acuity above 10. 0.02 = +2%/point.")]
     public float spellPowerPerAcuity = 0.02f;
@@ -81,7 +91,21 @@ public class PlayerStats : MonoBehaviour, IDamageable
         baseMaxMana + Intelligence * manaPerIntelligence + Wisdom * manaPerWisdom));
 
     public float AttackDamage => Mathf.Max(0f, Derived(StatType.AttackDamage,
-        baseAttackDamage + Strength * damagePerStrength + EquippedWeaponDamage));
+        baseAttackDamage + Strength * damagePerStrength + EquippedWeaponDamage))
+        * (1f + EquippedWeaponMasteryPercent / 100f);
+
+    // Weapon-mastery skills grant a damage % only while a matching weapon type is
+    // equipped. Exposed so the ranged/projectile path can apply it too.
+    public float EquippedWeaponMasteryPercent
+    {
+        get
+        {
+            if (SkillSystem.Instance == null) return 0f;
+            var w = InventorySystem.Instance?.GetEquippedLoot(EquipSlot.MainHand);
+            WeaponType t = (w != null && w.itemType == LootItemType.Weapon) ? w.weaponType : WeaponType.Unarmed;
+            return SkillSystem.Instance.WeaponMasteryPercent(t);
+        }
+    }
 
     // Damage contributed by the currently equipped main-hand weapon (0 when unarmed
     // or when a ranged weapon is held — bows/thrown carry their damage on the projectile).
@@ -100,7 +124,15 @@ public class PlayerStats : MonoBehaviour, IDamageable
         baseAttackSpeed + Dexterity * attackSpeedPerDexterity));
 
     public float Defense => Mathf.Max(0f, Derived(StatType.Defense,
-        baseDefense + Dexterity * defensePerDexterity));
+        baseDefense + Strength * defensePerStrength));
+
+    // Resource regeneration per second. Driven by attributes + gear/skills/buffs;
+    // the player can't invest in them directly.
+    public float HealthRegen => Mathf.Max(0f, Derived(StatType.HealthRegen,
+        baseHealthRegen + Constitution * healthRegenPerConstitution));
+
+    public float ManaRegen => Mathf.Max(0f, Derived(StatType.ManaRegen,
+        baseManaRegen + Intelligence * manaRegenPerIntelligence));
 
     public float MoveSpeedBonus => Derived(StatType.MoveSpeed, 0f);
 
@@ -199,6 +231,36 @@ public class PlayerStats : MonoBehaviour, IDamageable
         HUDController.Instance?.UpdateMana(CurrentMana, MaxMana);
     }
 
+    // Passive health/mana regeneration: applies the full HealthRegen / ManaRegen
+    // amount once every 5 seconds, at all times (including combat). Time.deltaTime
+    // is 0 while paused, so the timer naturally halts in menus; the dead player
+    // doesn't regen.
+    const float RegenInterval = 5f;
+    float _regenTimer;
+
+    private void Update()
+    {
+        if (CurrentHealth <= 0f) return;
+
+        _regenTimer += Time.deltaTime;
+        if (_regenTimer < RegenInterval) return;
+        _regenTimer -= RegenInterval;
+
+        float hr = HealthRegen;
+        if (hr > 0f && CurrentHealth < MaxHealth)
+        {
+            CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + hr);
+            HUDController.Instance?.UpdateHealth(CurrentHealth, MaxHealth);
+        }
+
+        float mr = ManaRegen;
+        if (mr > 0f && CurrentMana < MaxMana)
+        {
+            CurrentMana = Mathf.Min(MaxMana, CurrentMana + mr);
+            HUDController.Instance?.UpdateMana(CurrentMana, MaxMana);
+        }
+    }
+
     // Restores the player to full health/mana (used on load — vitals aren't saved —
     // and to clear a death state). Refreshes the HUD bars.
     public void ReviveFull()
@@ -208,6 +270,44 @@ public class PlayerStats : MonoBehaviour, IDamageable
         CharAnim?.Revive();
         HUDController.Instance?.UpdateHealth(CurrentHealth, MaxHealth);
         HUDController.Instance?.UpdateMana(CurrentMana, MaxMana);
+    }
+
+    // ---- Attribute allocation (spending level-up attribute points) ----
+
+    [System.Serializable]
+    public class AttributeSave { public float str, dex, con, intel, wis, cha, acuity; }
+
+    // Raise a base attribute by `amount`. The caller (UI) is responsible for
+    // spending the attribute point via LevelSystem first.
+    public void RaiseAttribute(StatType attr, int amount = 1)
+    {
+        switch (attr)
+        {
+            case StatType.Strength:     strength     += amount; break;
+            case StatType.Dexterity:    dexterity    += amount; break;
+            case StatType.Constitution: constitution += amount; break;
+            case StatType.Intelligence: intelligence += amount; break;
+            case StatType.Wisdom:       wisdom       += amount; break;
+            case StatType.Charisma:     charisma     += amount; break;
+            case StatType.SpellAcuity:  spellAcuity  += amount; break;
+            default: return;
+        }
+        // A higher CON/INT raised the max pools; reflect it on the HUD.
+        HUDController.Instance?.UpdateHealth(CurrentHealth, MaxHealth);
+        HUDController.Instance?.UpdateMana(CurrentMana, MaxMana);
+    }
+
+    public AttributeSave CaptureAttributes() => new AttributeSave
+    {
+        str = strength, dex = dexterity, con = constitution, intel = intelligence,
+        wis = wisdom, cha = charisma, acuity = spellAcuity,
+    };
+
+    public void RestoreAttributes(AttributeSave s)
+    {
+        if (s == null) return;
+        strength = s.str; dexterity = s.dex; constitution = s.con; intelligence = s.intel;
+        wisdom = s.wis; charisma = s.cha; spellAcuity = s.acuity;
     }
 
     private void OnEnable()

@@ -815,9 +815,14 @@ public class GameUI : MonoBehaviour
     {
         _statHover = null;
 
+        // Header: character name and level, each centred on a third of the width
+        // so they sit equidistant from one another and the panel edges.
         var header = new GUIStyle(GUI.skin.label)
             { alignment = TextAnchor.UpperCenter, fontStyle = FontStyle.Bold, fontSize = 16 };
-        GUI.Label(new Rect(x, y + 2f, w, 26f), "Character", header);
+        int level = LevelSystem.Instance != null ? LevelSystem.Instance.CurrentLevel : 1;
+        float third = w / 3f;
+        GUI.Label(new Rect(x + third * 0.5f, y + 2f, third, 26f), "Cael Varen", header);
+        GUI.Label(new Rect(x + third * 1.5f, y + 2f, third, 26f), $"Level: {level}", header);
 
         var player = PlayerManager.Instance?.Player;
         var stats  = player != null ? player.GetComponent<PlayerStats>()   : null;
@@ -838,19 +843,21 @@ public class GameUI : MonoBehaviour
         float midX0 = colW + colGap;            // center column
         float rightX0 = (colW + colGap) * 2f;   // right column
 
-        // Reserve a strip at the bottom for the Corruption bar (outside the scroll).
+        // Reserve strips at the bottom for the Corruption + XP bars (outside the scroll).
         const float corruptStripH = 48f;
-        float scrollH = Mathf.Max(80f, listH - corruptStripH);
+        const float xpStripH      = 46f;
+        float scrollH = Mathf.Max(80f, listH - corruptStripH - xpStripH);
 
         var viewport = new Rect(x, listY, w, scrollH);
-        var content  = new Rect(0, 0, w - 20f, Mathf.Max(scrollH, 470f));
+        var content  = new Rect(0, 0, w - 20f, Mathf.Max(scrollH, 520f));
         _scrollCharacter = GUI.BeginScrollView(viewport, _scrollCharacter, content);
 
         // ── Left: attributes ──
         float cy = 0f;
-        StatSection(0f, ref cy, colW, "Attributes");
-        AttrRow(0f, ref cy, colW, "Strength",     stats.strength,     stats.Strength,     StatType.Strength,     buffs, "Melee / physical damage");
-        AttrRow(0f, ref cy, colW, "Dexterity",    stats.dexterity,    stats.Dexterity,    StatType.Dexterity,    buffs, "Attack speed, defense, physical crit");
+        int attrPts = LevelSystem.Instance != null ? LevelSystem.Instance.UnspentAttributePoints : 0;
+        StatSection(0f, ref cy, colW, attrPts > 0 ? $"Attributes  ({attrPts} pt)" : "Attributes");
+        AttrRow(0f, ref cy, colW, "Strength",     stats.strength,     stats.Strength,     StatType.Strength,     buffs, "Melee / physical damage, defense");
+        AttrRow(0f, ref cy, colW, "Dexterity",    stats.dexterity,    stats.Dexterity,    StatType.Dexterity,    buffs, "Attack speed, physical crit");
         AttrRow(0f, ref cy, colW, "Constitution", stats.constitution, stats.Constitution, StatType.Constitution, buffs, "Maximum health");
         AttrRow(0f, ref cy, colW, "Intelligence", stats.intelligence, stats.Intelligence, StatType.Intelligence, buffs, "Maximum mana");
         AttrRow(0f, ref cy, colW, "Wisdom",       stats.wisdom,       stats.Wisdom,       StatType.Wisdom,       buffs, "Mana; slows corruption gain");
@@ -862,6 +869,8 @@ public class GameUI : MonoBehaviour
         StatSection(midX0, ref cy, colW, "Vitals");
         PlainRow(midX0, ref cy, colW, "Health", $"{stats.CurrentHealth:0} / {stats.MaxHealth:0}", StatType.MaxHealth, buffs);
         PlainRow(midX0, ref cy, colW, "Mana",   $"{stats.CurrentMana:0} / {stats.MaxMana:0}",     StatType.MaxMana,   buffs);
+        DerivedRow(midX0, ref cy, colW, "Health Regen", stats.HealthRegen, "0.0", StatType.HealthRegen, buffs, "/5s");
+        DerivedRow(midX0, ref cy, colW, "Mana Regen",   stats.ManaRegen,   "0.0", StatType.ManaRegen,   buffs, "/5s");
 
         StatSection(midX0, ref cy, colW, "Combat");
         DerivedRow(midX0, ref cy, colW, "Attack Damage",  stats.AttackDamage,            "0.#", StatType.AttackDamage,      buffs);
@@ -885,9 +894,57 @@ public class GameUI : MonoBehaviour
         GUI.EndScrollView();
 
         DrawCorruptionBar(x, listY + scrollH + 4f, w, corruptStripH - 6f);
+        DrawXpBar(x, listY + scrollH + corruptStripH + 4f, w, xpStripH - 6f);
 
         // Stat-source tooltip (captured during row drawing inside the scroll).
         if (_statHover != null) DrawStatHoverTooltip(_statHover, x, w);
+    }
+
+    // XP progress toward the next level, with a hover showing current/required XP.
+    void DrawXpBar(float x, float y, float w, float h)
+    {
+        var ls = LevelSystem.Instance;
+        if (ls == null) return;
+
+        bool  max  = ls.IsMaxLevel;
+        long  into = ls.XpIntoCurrentLevel;
+        long  need = ls.XpForCurrentLevel;
+        float norm = max ? 1f : ls.LevelProgress;
+
+        var lbl = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 12 };
+        lbl.normal.textColor = new Color(0.55f, 0.85f, 1f);
+        GUI.Label(new Rect(x, y, w, 16f),
+            max ? "Max Level" : $"XP to next level: {ls.XpToNextLevel:N0}", lbl);
+
+        float by = y + 17f, bh = h - 17f;
+        var barRect = new Rect(x, by, w, bh);
+
+        GUI.color = new Color(0.08f, 0.11f, 0.15f, 1f);
+        GUI.DrawTexture(barRect, Texture2D.whiteTexture);
+        GUI.color = new Color(0.25f, 0.55f, 0.95f, 1f);
+        GUI.DrawTexture(new Rect(x, by, w * norm, bh), Texture2D.whiteTexture);
+        GUI.color = new Color(1f, 1f, 1f, 0.20f);
+        GUI.DrawTexture(new Rect(x, by, w, 1f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        // Hover anywhere over the label + bar shows "current / required" for this level.
+        if (!max && barRect.Contains(Event.current.mousePosition))
+        {
+            string text = $"{into:N0} XP out of {need:N0} XP";
+            var ts = new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter };
+            ts.normal.textColor = new Color(0.92f, 0.92f, 0.92f);
+            const float tw = 240f, pad = 8f;
+            float th = 20f;
+            float tx = Mathf.Clamp(Event.current.mousePosition.x - tw * 0.5f, x, x + w - tw);
+            float ty = y - th - pad * 2f - 4f;
+            var box = new Rect(tx, ty, tw, th + pad * 2f);
+            GUI.color = new Color(0.05f, 0.05f, 0.07f, 0.96f);
+            GUI.DrawTexture(box, Texture2D.whiteTexture);
+            GUI.color = new Color(0.25f, 0.55f, 0.95f, 0.9f);
+            GUI.DrawTexture(new Rect(box.x, box.y, box.width, 2f), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(tx + pad, ty + pad, tw - pad * 2f, th), text, ts);
+        }
     }
 
     void DrawStatHoverTooltip(string text, float clampX, float clampW)
@@ -1019,6 +1076,15 @@ public class GameUI : MonoBehaviour
         float top = cy;
         var name = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 13 };
         GUI.Label(new Rect(x, cy, w, 18f), $"{label}: {effVal:0.#}", name);
+
+        // "+" to spend an attribute point on this attribute (when any are unspent).
+        if (LevelSystem.Instance != null && LevelSystem.Instance.UnspentAttributePoints > 0
+            && GUI.Button(new Rect(x + w - 22f, cy - 1f, 20f, 18f), "+"))
+        {
+            var ps = PlayerManager.Instance?.Player != null
+                ? PlayerManager.Instance.Player.GetComponent<PlayerStats>() : null;
+            if (ps != null && LevelSystem.Instance.SpendAttributePoints(1)) ps.RaiseAttribute(stat);
+        }
         cy += 17f;
 
         string mods = BuildModString(stat, buffs);
@@ -1113,16 +1179,56 @@ public class GameUI : MonoBehaviour
     {
         var header = new GUIStyle(GUI.skin.label)
             { alignment = TextAnchor.UpperCenter, fontStyle = FontStyle.Bold, fontSize = 16 };
-        GUI.Label(new Rect(x, y + 2f, w, 26f), "Skills", header);
+        int points = LevelSystem.Instance != null ? LevelSystem.Instance.UnspentSkillPoints : 0;
+        GUI.Label(new Rect(x, y + 2f, w, 26f), $"Skills — {points} point{(points == 1 ? "" : "s")} available", header);
 
-        float listY = y + 30f;
-        float listH = h - 30f;
+        float listY = y + 30f, listH = h - 30f;
 
-        // Placeholder until SkillSystem is implemented.
-        var placeholder = new GUIStyle(GUI.skin.label)
-            { alignment = TextAnchor.MiddleCenter, fontSize = 14, fontStyle = FontStyle.Italic };
-        placeholder.normal.textColor = new Color(0.45f, 0.45f, 0.45f);
-        GUI.Label(new Rect(x, listY, w, listH), "Skills — coming soon", placeholder);
+        var skills = SaveSystem.Instance?.database?.skills;
+        if (skills == null || skills.Length == 0)
+        {
+            var empty = new GUIStyle(GUI.skin.label)
+                { alignment = TextAnchor.MiddleCenter, fontSize = 14, fontStyle = FontStyle.Italic };
+            empty.normal.textColor = new Color(0.45f, 0.45f, 0.45f);
+            GUI.Label(new Rect(x, listY, w, listH), "No skills registered (populate GameDatabase.skills).", empty);
+            return;
+        }
+
+        var ss = SkillSystem.Instance;
+        const float rowH = 56f;
+        var viewport = new Rect(x, listY, w, listH);
+        var content  = new Rect(0, 0, w - 20f, Mathf.Max(skills.Length * rowH, listH));
+        _scrollSkills = GUI.BeginScrollView(viewport, _scrollSkills, content);
+
+        var nameStyle = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 14 };
+        var descStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, wordWrap = true };
+        descStyle.normal.textColor = new Color(0.8f, 0.8f, 0.8f);
+
+        for (int i = 0; i < skills.Length; i++)
+        {
+            var skill = skills[i];
+            if (skill == null) continue;
+            float iy = i * rowH;
+
+            int rank = ss != null ? ss.GetRank(skill) : 0;
+            int max  = Mathf.Max(1, skill.maxRank);
+            GUI.Label(new Rect(0, iy, content.width - 90f, 20f),
+                $"{skill.skillName}  ({rank}/{max})", nameStyle);
+            if (!string.IsNullOrEmpty(skill.description))
+                GUI.Label(new Rect(8f, iy + 20f, content.width - 100f, 30f), skill.description, descStyle);
+
+            bool can = ss != null && ss.CanUnlock(skill);
+            GUI.enabled = can;
+            string btn = (ss != null && ss.IsMaxed(skill)) ? "Max"
+                       : skill.pointCost > 1 ? $"+ ({skill.pointCost})" : "+";
+            if (GUI.Button(new Rect(content.width - 84f, iy + 10f, 78f, 30f), btn) && can)
+                ss.UnlockSkill(skill);
+            GUI.enabled = true;
+
+            GUI.Box(new Rect(0, iy + rowH - 4f, content.width, 1f), "");
+        }
+
+        GUI.EndScrollView();
     }
 
     // ── Spells ────────────────────────────────────────────────────────────────

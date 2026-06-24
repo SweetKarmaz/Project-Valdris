@@ -1162,6 +1162,8 @@ public class NpcController : MonoBehaviour, IDamageable
         if (gMin == 0 && gMax == 0 && definition != null) { gMin = definition.goldMin; gMax = definition.goldMax; }
         int baseGold = gMax > gMin ? Random.Range(gMin, gMax + 1) : gMin;
         float goldMult = lootRarity == ItemRarity.None ? 1f : LootDropTable.GoldMultiplier(lootRarity);
+        // Skill-based gold find.
+        if (SkillSystem.Instance != null) goldMult *= 1f + SkillSystem.Instance.GoldFindPercent() / 100f;
         _corpseGold = Mathf.RoundToInt(baseGold * goldMult);
     }
 

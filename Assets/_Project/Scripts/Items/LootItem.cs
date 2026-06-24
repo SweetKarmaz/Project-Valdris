@@ -56,6 +56,8 @@ public class LootItem : MonoBehaviour
 
     [Header("Weapon  (itemType = Weapon)")]
     public WeaponCategory weaponCategory = WeaponCategory.Melee;
+    [Tooltip("Specific archetype for weapon-mastery skills (Sword, Mace, Bow, ...).")]
+    public WeaponType weaponType = WeaponType.Other;
     [Tooltip("Base damage added to the wielder's attack damage.")]
     public float weaponDamage;
     [Tooltip("Attack range in world units.")]

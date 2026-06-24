@@ -40,7 +40,7 @@ public class Merchant : MonoBehaviour
     [Tooltip("Player SELLS at item value × this (merchant's markdown).")]
     public float sellMarkdown = 0.5f;
     [Tooltip("Per Charisma point above 10: player buys cheaper / sells higher by this fraction.")]
-    public float charismaPriceShift = 0.01f;
+    public float charismaPriceShift = 0.02f;
 
     // ── Runtime ───────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ public class XPSystem : MonoBehaviour
 {
     public static XPSystem Instance { get; private set; }
 
-    public int CurrentXP { get; private set; }
+    public long CurrentXP { get; private set; }
 
     private void Awake()
     {
@@ -15,10 +15,20 @@ public class XPSystem : MonoBehaviour
 
     public void AddXP(int amount)
     {
+        if (amount <= 0) return;
+        // Skill-based XP gain bonus.
+        if (SkillSystem.Instance != null)
+        {
+            float bonus = SkillSystem.Instance.XpGainPercent();
+            if (bonus > 0f) amount = Mathf.RoundToInt(amount * (1f + bonus / 100f));
+        }
         CurrentXP += amount;
         LevelSystem.Instance?.CheckLevelUp(CurrentXP);
     }
 
-    public void RestoreState(int xp) => CurrentXP = xp;
+    public void RestoreState(long xp) => CurrentXP = xp;
+
+    // Fresh start (New Game).
+    public void ResetState() => CurrentXP = 0;
 }
 

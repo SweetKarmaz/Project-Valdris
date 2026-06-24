@@ -16,8 +16,9 @@ public class ItemRoll
     public string     displayName;
     public string     flavorText;
 
-    public bool  isWeapon;              // true → weaponDamage applies; false → armorValue
-    public bool  isTwoHanded;
+    public bool        isWeapon;        // true → weaponDamage applies; false → armorValue
+    public bool        isTwoHanded;
+    public GenCategory category;        // used to assign WeaponType during build
     public float weaponDamage;
     public float armorValue;
     public int   goldValue = 1;

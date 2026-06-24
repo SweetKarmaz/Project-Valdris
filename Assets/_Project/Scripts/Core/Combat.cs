@@ -14,6 +14,7 @@ public static class Combat
 
         dmg.TakeDamage(primary);
         AccrueCorruption(primary);
+        ApplyLifesteal(primary);
 
         if (riders == null) return;
         CharacterBuffs buffs = null;
@@ -34,6 +35,17 @@ public static class Combat
                 buffs?.TryApplyStatus(r.debuff);   // immunity + resist handled inside
             }
         }
+    }
+
+    // Heal the attacker for a share of damage dealt, if they have lifesteal skills.
+    // Only the player carries a SkillSystem, so NPC attackers never lifesteal.
+    static void ApplyLifesteal(DamageInfo info)
+    {
+        if (info.source == null || info.amount <= 0f || SkillSystem.Instance == null) return;
+        float pct = SkillSystem.Instance.LifestealPercent();
+        if (pct <= 0f) return;
+        var ps = info.source.GetComponent<PlayerStats>();
+        if (ps != null) ps.Heal(info.amount * pct / 100f);
     }
 
     // When the PLAYER deals Corruption damage, it taints them — fill their meter

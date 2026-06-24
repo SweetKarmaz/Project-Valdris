@@ -50,6 +50,9 @@ public class GameManager : MonoBehaviour
         InventorySystem.Instance?.ClearAll();
         SpellbookSystem.Instance?.ClearAll();
         CorruptionTracker.Instance?.ResetCorruption();
+        XPSystem.Instance?.ResetState();
+        LevelSystem.Instance?.ResetState();
+        SkillSystem.Instance?.ClearAll();
         HUDController.Instance?.Reset();
         PlayerManager.Instance?.DestroyPlayer();
         GameClock.EnsureExists();

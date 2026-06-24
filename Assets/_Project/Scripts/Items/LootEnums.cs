@@ -19,6 +19,24 @@ public enum WeaponCategory
     Ranged,   // Bow, crossbow, thrown — uses a ProjectileType from inventory
 }
 
+// Specific weapon archetype, used by weapon-mastery skills (a per-type damage %).
+// Independent of WeaponCategory (e.g. Staff is Melee; Bow is Ranged).
+public enum WeaponType
+{
+    None,       // not a weapon
+    Unarmed,
+    Sword,
+    Axe,
+    Mace,
+    Dagger,
+    Polearm,
+    Staff,
+    Bow,
+    Crossbow,
+    Thrown,
+    Other,      // a weapon with no specific mastery
+}
+
 // Medieval projectile types. Ranged weapons declare which type they require.
 // The inventory system checks for a matching stack before allowing a shot.
 public enum ProjectileType

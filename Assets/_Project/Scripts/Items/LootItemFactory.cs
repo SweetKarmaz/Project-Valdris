@@ -57,6 +57,9 @@ public static class LootItemFactory
         {
             li.weaponDamage = roll.weaponDamage;
             li.isTwoHanded  = roll.isTwoHanded;
+            // Fill in the archetype from the category unless the base prefab set one.
+            if (li.weaponType == WeaponType.Other || li.weaponType == WeaponType.None)
+                li.weaponType = LootClassifier.WeaponTypeFor(roll.category);
         }
         else
         {

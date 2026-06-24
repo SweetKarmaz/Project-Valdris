@@ -130,8 +130,14 @@ public class PlayerRanged : MonoBehaviour
                    ?? instance.AddComponent<ProjectileBehaviour>();
 
         // Damage is the arrow's own + the bow's (weaponDamage + elemental riders),
-        // resolved on hit. Player melee AttackDamage does not apply to arrows.
-        proj.Launch(direction, 0f, ammo, equippedWeapon, gameObject);
+        // resolved on hit. Player melee AttackDamage does not apply to arrows, but
+        // weapon-mastery (Bow) does — passed as a bonus equal to mastery% of the
+        // arrow + bow physical.
+        float masteryPct  = _stats != null ? _stats.EquippedWeaponMasteryPercent : 0f;
+        float masteryBonus = masteryPct > 0f
+            ? (equippedWeapon.weaponDamage + ammo.projectileDamage + ammo.projectileDamageBonus) * masteryPct / 100f
+            : 0f;
+        proj.Launch(direction, masteryBonus, ammo, equippedWeapon, gameObject);
 
         // Consume one round of ammo.
         inv.ConsumeProjectile(needed);
